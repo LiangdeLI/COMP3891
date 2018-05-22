@@ -14,6 +14,14 @@ void vm_bootstrap(void)
         /* Initialise VM sub-system.  You probably want to initialise your 
            frame table here as well.
         */
+
+		//paddr_t top_of_ram = ran_getsize();
+
+		unsigned int nframes = ran_getsize()/PAGE_SIZE;
+		paddr_t location = ran_getsize() - (nframe * sizeof(struct frame_table));
+
+
+
 }
 
 int
