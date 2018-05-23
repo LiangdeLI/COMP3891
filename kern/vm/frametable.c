@@ -25,7 +25,7 @@ struct ft_entry{
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 //Frame table
-struct ft_entry* frameTable = NULL; //Add
+struct ft_entry* frameTable = NULL; //Add	
 
 /* Note that this function returns a VIRTUAL address, not a physical 
  * address
