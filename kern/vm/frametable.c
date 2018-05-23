@@ -11,19 +11,21 @@
  */
 
 
+//Add***********************************
 //The struct of frame table entry
 struct ft_entry{
 	int prev;
 	int next;
 	bool used;
 }
+////***********************************
 
 
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 //Frame table
-struct ft_entry* frameTable = NULL; 
+struct ft_entry* frameTable = NULL; //Add
 
 /* Note that this function returns a VIRTUAL address, not a physical 
  * address

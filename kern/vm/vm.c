@@ -19,6 +19,7 @@ void vm_bootstrap(void)
 
 		
 		
+		//Add*******************************************************
 		//paddr_t top_of_ram = ran_getsize();
 
 		//Get the number of frames
@@ -49,7 +50,7 @@ void vm_bootstrap(void)
 		
 			memmove(&ft_table[i], &fte_entry, sizeof(ft_entry));
 		}
-
+		//*******************************************************
 
 }
 
