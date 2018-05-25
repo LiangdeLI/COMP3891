@@ -6,7 +6,6 @@
 #include <vm.h>
 #include <machine/tlb.h>
 
-#include <frametable.h> //Add
 
 /* Place your page table functions here */
 
@@ -20,36 +19,7 @@ void vm_bootstrap(void)
 		
 		
 		//Add*******************************************************
-		//paddr_t top_of_ram = ran_getsize();
-
-		//Get the number of frames
-		unsigned int size_of_frames = ran_getsize()/PAGE_SIZE;
-		paddr_t bound = ran_getsize() - (size_of_frames * sizeof(struct frameTable));
-
-		//Frame table		
-		ft_table = (struct ft_entry* ) PADDR_TO_KVADDR();
-
-		//Create frame table
-		struct ft_entry ft_e;
-		for(int i = 0; i < size_of_frames; i++){
-			
-			if(i == 0){
-				ft_e.prev = size_of_frames - 1;				
-			}else{
-				
-				ft_e.prev = i-1;
-			}
-			
-			if(i == size_of_frames-1){
-				ft_e.next = 0;
-			}else{
-				ft_e.next = i+1;
-			}
-
-			fte_entry.used = false;
-		
-			memmove(&ft_table[i], &fte_entry, sizeof(ft_entry));
-		}
+		init_frametable();
 		//*******************************************************
 
 }
