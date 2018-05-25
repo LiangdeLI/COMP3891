@@ -19,16 +19,22 @@ struct ft_entry{
 	int next;
 	bool used;
 };
-////***********************************
+
+
+//Frame table
+struct ft_entry* frameTable = NULL;  
+
+static int first_free_index;
+
+static struct spinlock frameTable_lock = SPINLOCK_INITIALIZER;
+
+//***********************************
 
 
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-//Add********************************
-//Frame table
-struct ft_entry* frameTable = NULL;   
-//********************************8
+
 
 
 /* Note that this function returns a VIRTUAL address, not a physical 
@@ -41,19 +47,69 @@ struct ft_entry* frameTable = NULL;
 
 vaddr_t alloc_kpages(unsigned int npages)
 {
-        /*
-         * IMPLEMENT ME.  You should replace this code with a proper
-         *                implementation.
-         */
+        //***************
+	
+		//If we support only one page
+		if(npages != 1){
+			return 0;
+		}
+		
+		//If there is no more free frame
+		if (first_free_index == -1){
+			return 0;
+		}
+
+        //*************
 
         paddr_t addr;
 
-        spinlock_acquire(&stealmem_lock);
-        addr = ram_stealmem(npages);
-        spinlock_release(&stealmem_lock);
+   
+		
+        
+		
+		//******
+
+		spinlock_acquire(&frameTable_lock);     
+		if(frameTable != NULL){
+			addr = first_free_index << 12;
+			
+
+			//
+			frameTable[frameTable[first_free_index].next].prev = frameTable[first_free_index].prev;
+			frameTable[frameTable[first_free_index].prev].next = frameTable[first_free_index].next;
+			frameTable[first_free_index].used = true;
+			//
+
+
+
+			//Check if it is the last free frame
+			if(frameTable[first_free_index].next == first_free_index){
+				first_free_index = -1;
+			}else{
+				first_free_index = frameTable[first_free_index].next;
+			}
+
+
+
+
+		}else{
+			spinlock_acquire(&stealmem_lock);
+			addr = ram_stealmem(npages);
+        	spinlock_release(&stealmem_lock);				
+		}
+
+		spinlock_release(&frameTable_lock);
+		//******
+
+
+
+		
 
         if(addr == 0)
                 return 0;
+		
+
+		//bzero((void*)PADDR_TO_KVADDR(addr),PAGE_SIZE);
 
         return PADDR_TO_KVADDR(addr);
 }
@@ -75,7 +131,7 @@ void init_frametable(){
 		paddr_t bound = top_ram - (size_of_frames * sizeof(struct ft_entry));
 
 		//Frame table		
-		frameTable = (struct ft_entry* ) PADDR_TO_KVADDR(bound);
+		frameTable = (struct ft_entry*) PADDR_TO_KVADDR(bound);
 
 		//Create frame table entries
 		struct ft_entry ft_e;
@@ -95,7 +151,6 @@ void init_frametable(){
 			}
 
 			ft_e.used = false;
-		
 			memmove(&frameTable[i], &ft_e, sizeof(ft_e));
 		}
 
@@ -106,8 +161,11 @@ void init_frametable(){
 		for(unsigned int i = 0; i <= frame_firstfree+1; i++){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
-			frameTable[i].used = true;			
+			frameTable[i].used = true;
+			
+			first_free_index = i;		
 		}
+		
 		
 		//Remove the frames used for frame trable from free list
 		unsigned int frame_bound = bound >> 12;
