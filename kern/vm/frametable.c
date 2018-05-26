@@ -61,7 +61,7 @@ vaddr_t alloc_kpages(unsigned int npages)
 
         //*************
 
-        paddr_t addr;
+        paddr_t addr = 0; //Initialization to 0
 
    
 		
@@ -102,9 +102,6 @@ vaddr_t alloc_kpages(unsigned int npages)
 		//******
 
 
-
-		
-
         if(addr == 0)
                 return 0;
 		
@@ -116,7 +113,32 @@ vaddr_t alloc_kpages(unsigned int npages)
 
 void free_kpages(vaddr_t addr)
 {
-        (void) addr;
+        //(void) addr;
+		
+		paddr_t paddr = KVADDR_TO_PADDR(addr);
+		
+		int i = paddr >> 12;
+		
+
+		spinlock_acquire(&frameTable_lock);
+
+		if(frameTable[i].used){
+
+			if(first_free_index != -1){
+				frameTable[i].prev = frameTable[first_free_index].prev;	
+				frameTable[first_free_index].prev = i;
+				frameTable[i].next = first_free_index;		
+			}else{
+				frameTable[i].prev = frameTable[i].next = i;
+			}
+				
+			frameTable[i].used = false;
+
+			first_free_index = i;
+			spinlock_release(&frameTable_lock);
+		}else{
+			spinlock_release(&frameTable_lock);
+		}
 }
 
 //Add***********************
