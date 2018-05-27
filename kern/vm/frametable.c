@@ -106,7 +106,7 @@ vaddr_t alloc_kpages(unsigned int npages)
                 return 0;
 		
 
-		//bzero((void*)PADDR_TO_KVADDR(addr),PAGE_SIZE);
+		bzero((void*)PADDR_TO_KVADDR(addr),PAGE_SIZE);
 
         return PADDR_TO_KVADDR(addr);
 }
