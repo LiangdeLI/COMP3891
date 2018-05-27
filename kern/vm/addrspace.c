@@ -90,26 +90,56 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         }
 
         //Add***************** Not finished
-        struct pt_base* base_old = old->pt_bases;
-		//struct pt_base* base_new = newas->pt_bases;
+        struct region* old_region = old->regionList;
+		struct region* new_region = newas->regionList;
 
-		while(base_old != NULL){
-			struct pt_base* temp = kmalloc(sizeof(struct pt_base));
-			if(temp == NULL){
+		while(old_region != NULL){
+			struct region* reg = kmalloc(sizeof(struct region));
+			if(reg == NULL){
 				//as_destroy();
 				return ENOMEM;			
 			}else{
-				temp->vir_base = base_old -> vir_base;
-				temp->size_of_frames = base_old->size_of_frames;
-				temp->w_bit = base_old->w_bit;
+				reg->vir_base = base_old -> vir_base;
+				reg->size_of_frames = base_old->size_of_frames;
+				reg->w_bit = base_old->w_bit;
+				reg->next = NULL;
 
+				if(new_region == NULL){
+					newas->regionList = reg;
+				}else{
+					new_region->next = reg;
+				} 
+				new_region = reg;
+				old_region = old_region->next;
 			}
 
 			
 		}
+
+		for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
+			if(old->pageTable == NULL){
+				continue;
+			}
+			newas-> pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
+			for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
+
+				if(old->pageTable[i][j] == 0){
+					newas->pageTable = 0;				
+				}else{
+					vaddr_t frame_addr_new = alloc_kpages(1);
+					vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
+					memmove((void*)frame_addr_new, (const void *)frame_addr_old,SIZE_OF_PAGE, SIZE_OF_PAGE);
+					//dirty = 
+					newas->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
+				}
+				
+			}
+		}
+
+
         //*******************
 
-        (void)old;
+        //(void)old;
 
         *ret = newas;
         return 0;

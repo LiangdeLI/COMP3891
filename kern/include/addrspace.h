@@ -49,10 +49,11 @@ struct vnode;
  */
 
 //Add**********************
-struct pt_base{
+struct region{
 	vaddr_t vir_base;
 	size_t size_of_frames;
 	uint32_t w_bit;
+	struct region* next;
 	
 };
 //*************************
@@ -72,7 +73,7 @@ struct addrspace {
 #else
 		/* Put stuff here for your VM system */
 		paddr_t** pageTable;
-		struct pt_base* pt_bases;    
+		struct pt_base* regionList;    
 		
 #endif
 };
