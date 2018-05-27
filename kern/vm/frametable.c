@@ -114,6 +114,7 @@ vaddr_t alloc_kpages(unsigned int npages)
 void free_kpages(vaddr_t addr)
 {
         //(void) addr;
+		//Add**********
 		
 		paddr_t paddr = KVADDR_TO_PADDR(addr);
 		
@@ -139,6 +140,7 @@ void free_kpages(vaddr_t addr)
 		}else{
 			spinlock_release(&frameTable_lock);
 		}
+		//*************
 }
 
 //Add***********************
@@ -146,14 +148,14 @@ void free_kpages(vaddr_t addr)
 void init_frametable(){
 
 		//paddr_t top_of_ram = ram_getsize();
-		paddr_t top_ram = ram_getsize();
+		paddr_t top_of_ram = ram_getsize();
 		//Get the number of frames
 		
-		unsigned int size_of_frames = (top_ram)/PAGE_SIZE;
-		paddr_t bound = top_ram - (size_of_frames * sizeof(struct ft_entry));
+		unsigned int size_of_frames = (top_of_ram)/PAGE_SIZE;
+		paddr_t location = top_of_ram - (size_of_frames * sizeof(struct ft_entry));
 
 		//Frame table		
-		frameTable = (struct ft_entry*) PADDR_TO_KVADDR(bound);
+		frameTable = (struct ft_entry*) PADDR_TO_KVADDR(location);
 
 		//Create frame table entries
 		struct ft_entry ft_e;
@@ -190,8 +192,8 @@ void init_frametable(){
 		
 		
 		//Remove the frames used for frame trable from free list
-		unsigned int frame_bound = bound >> 12;
-		for(unsigned int i = size_of_frames-1; i>= frame_bound; i--){
+		unsigned int frame_loc = location >> 12;
+		for(unsigned int i = size_of_frames-1; i>= frame_loc; i--){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
 			frameTable[i].used = true;					
