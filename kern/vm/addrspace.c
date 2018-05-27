@@ -61,8 +61,10 @@ as_create(void)
         /*
          * Initialize as needed.
          */
+
+		//Add*****************************
 		as->pageTable = (paddr_t **)alloc_kpages(1);
-		if (as->pageTable == NULL){
+		if(as->pageTable == NULL){
 			kfree(as);
 			return NULL;		
 		}
@@ -72,6 +74,7 @@ as_create(void)
 		}
 
 		//as->regions = NULL;		
+		//********************************
 
         return as;
 }
@@ -86,9 +89,25 @@ as_copy(struct addrspace *old, struct addrspace **ret)
                 return ENOMEM;
         }
 
-        /*
-         * Write this.
-         */
+        //Add***************** Not finished
+        struct pt_base* base_old = old->pt_bases;
+		//struct pt_base* base_new = newas->pt_bases;
+
+		while(base_old != NULL){
+			struct pt_base* temp = kmalloc(sizeof(struct pt_base));
+			if(temp == NULL){
+				//as_destroy();
+				return ENOMEM;			
+			}else{
+				temp->vir_base = base_old -> vir_base;
+				temp->size_of_frames = base_old->size_of_frames;
+				temp->w_bit = base_old->w_bit;
+
+			}
+
+			
+		}
+        //*******************
 
         (void)old;
 

@@ -48,6 +48,18 @@ struct vnode;
  * You write this.
  */
 
+//Add**********************
+struct pt_base{
+	vaddr_t vir_base;
+	size_t size_of_frames;
+	uint32_t w_bit;
+	
+};
+//*************************
+
+
+
+
 struct addrspace {
 #if OPT_DUMBVM
         vaddr_t as_vbase1;
@@ -58,8 +70,10 @@ struct addrspace {
         size_t as_npages2;
         paddr_t as_stackpbase;
 #else
+		/* Put stuff here for your VM system */
 		paddr_t** pageTable;
-        /* Put stuff here for your VM system */
+		struct pt_base* pt_bases;    
+		
 #endif
 };
 
