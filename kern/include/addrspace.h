@@ -29,7 +29,7 @@
 
 #ifndef _ADDRSPACE_H_
 #define _ADDRSPACE_H_
-
+#define SIZE_OF_PAGETABLE 1024
 /*
  * Address space structure and operations.
  */
@@ -58,6 +58,7 @@ struct addrspace {
         size_t as_npages2;
         paddr_t as_stackpbase;
 #else
+		paddr_t** pageTable;
         /* Put stuff here for your VM system */
 #endif
 };

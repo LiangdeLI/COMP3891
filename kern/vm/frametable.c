@@ -63,24 +63,18 @@ vaddr_t alloc_kpages(unsigned int npages)
 
         paddr_t addr = 0; //Initialization to 0
 
-   
-		
-        
-		
+  		
 		//******
 
 		spinlock_acquire(&frameTable_lock);     
 		if(frameTable != NULL){
 			addr = first_free_index << 12;
 			
-
 			//
 			frameTable[frameTable[first_free_index].next].prev = frameTable[first_free_index].prev;
 			frameTable[frameTable[first_free_index].prev].next = frameTable[first_free_index].next;
 			frameTable[first_free_index].used = true;
 			//
-
-
 
 			//Check if it is the last free frame
 			if(frameTable[first_free_index].next == first_free_index){
@@ -88,9 +82,6 @@ vaddr_t alloc_kpages(unsigned int npages)
 			}else{
 				first_free_index = frameTable[first_free_index].next;
 			}
-
-
-
 
 		}else{
 			spinlock_acquire(&stealmem_lock);
