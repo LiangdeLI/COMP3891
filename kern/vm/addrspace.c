@@ -148,11 +148,41 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-        /*
-         * Clean up as needed.
-         */
+	/*
+    * Clean up as needed.
+    */
 
-        kfree(as);
+	//Free the regions
+	struct region* prev;
+	struct region* cur;
+	cur = as->regionList;
+	prev = cur;
+		
+	while(cur != NULL){
+		cur = cur->next;
+		kfree(prev);
+		prev = cur;
+	}
+
+	if(prev!=NULL){
+		kfree(prev);
+	}
+
+	//Free the pagetables
+	for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
+		if(as->pageTable[i] == NULL){
+			continue;
+		}
+		for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
+			if(as->pageTable[i][j] != 0){
+				free_kpages(PADDR_TO_KVADDR(as->pageTable[i][j] & PAGE_FRAME));			
+			}
+		}
+		kfree(as->pageTable[i]);
+	}
+
+
+    kfree(as);
 }
 
 void
