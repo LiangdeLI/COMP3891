@@ -89,7 +89,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
                 return ENOMEM;
         }
 
-        //Add***************** Not finished
+        //Add*****************
         struct region* old_region = old->regionList;
 		struct region* new_region = newas->regionList;
 
@@ -148,6 +148,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
+	//Add************************
 	/*
     * Clean up as needed.
     */
@@ -181,8 +182,8 @@ as_destroy(struct addrspace *as)
 		kfree(as->pageTable[i]);
 	}
 
-
     kfree(as);
+	//****************************
 }
 
 void
@@ -202,6 +203,17 @@ as_activate(void)
         /*
          * Write this.
          */
+		//Add*********************************
+		int s = splhigh();
+		
+		//flush the TLB		
+		for(int i = 0; i < NUM_TLB; i++){
+			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);		
+		}
+
+		splx(s);
+		//************************************
+
 }
 
 void
@@ -212,6 +224,12 @@ as_deactivate(void)
          * anything. See proc.c for an explanation of why it (might)
          * be needed.
          */
+
+		//Add*********************************
+		as_activate();
+		//************************************
+
+
 }
 
 /*
