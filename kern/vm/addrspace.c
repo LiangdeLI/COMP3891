@@ -99,10 +99,11 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 				//as_destroy();
 				return ENOMEM;			
 			}else{
-				reg->vir_base = old_region -> vir_base;
-				reg->size_of_frames = old_region->size_of_frames;
-				reg->w_bit = old_region->w_bit;
 				reg->next = NULL;
+				reg->vir_base = old_region -> vir_base;				
+				reg->w_bit = old_region->w_bit;
+				reg->prev_w_bit = old_region->prev_w_bit;
+				reg->size_of_pages = old_region->size_of_pages;
 
 				if(new_region == NULL){
 					newas->regionList = reg;
@@ -250,13 +251,54 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
          * Write this.
          */
 
+		//Add************************************
+		memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+		vaddr &= PAGE_FRAME;
+
+		memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
+
+		size_t size_of_pages = memsize / PAGE_SIZE;
+
+
+		struct region *reg = kmalloc(sizeof(struct region));
+   		if (reg == NULL) {
+        	return ENOMEM;
+    	}
+
+		reg->next = NULL;
+		reg->vir_base = vaddr;
+		reg->w_bit = writeable;
+		reg->prev_w_bit = reg->w_bit;
+		reg->size_of_pages = size_of_pages;
+		
+
+		struct region* prev;
+		struct region* curr; 
+
+		if(as->regionList != NULL){
+			curr = as->regionList;
+			prev = curr;
+
+        	while (curr != NULL && (curr->vir_base < reg->vir_base)) {
+            	prev = curr;
+            	curr = curr->next;
+        	}
+        	prev->next = reg;
+        	reg->next = curr;
+
+		}else{
+			as->regionList = reg;
+		}
+
         (void)as;
         (void)vaddr;
         (void)memsize;
         (void)readable;
         (void)writeable;
         (void)executable;
-        return ENOSYS; /* Unimplemented */
+        //return ENOSYS; /* Unimplemented */
+		return 0;
+		//***************************************
 }
 
 int
@@ -265,6 +307,13 @@ as_prepare_load(struct addrspace *as)
         /*
          * Write this.
          */
+		//Add****************
+		struct region* curr = as->regionList;
+		while(curr != NULL){
+			curr->w_bit = 1;
+			curr = curr->next;
+		}
+		//******************
 
         (void)as;
         return 0;
@@ -277,7 +326,26 @@ as_complete_load(struct addrspace *as)
          * Write this.
          */
 
+
+		//Add*****************
+		struct region* curr = as->regionList;
+		while(curr != NULL){
+			curr->w_bit = curr->prev_w_bit;
+			curr = curr->next;
+		}
+
         (void)as;
+
+		int s = splhigh();
+
+		//Flush the tlb
+		for (int i = 0; i< NUM_TLB; i++){
+			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+		}
+		
+		splx(s);
+
+		//********************
         return 0;
 }
 
@@ -289,6 +357,11 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
          */
 
         (void)as;
+	
+		int res = as_define_region(as, USERSTACK - (12 * PAGE_SIZE), (12 * PAGE_SIZE), 1, 1, 1);
+		if(res){
+			return res;
+		}
 
         /* Initial user-level stack pointer */
         *stackptr = USERSTACK;

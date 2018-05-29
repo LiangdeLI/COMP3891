@@ -30,7 +30,19 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         (void) faulttype;
         (void) faultaddress;
 
-        panic("vm_fault hasn't been written yet\n");
+        //panic("vm_fault hasn't been written yet\n");
+		switch(faulttype){
+			case VM_FAULT_READ:
+				break;
+			case VM_FAULT_WRITE:
+				break;
+			case VM_FAULT_READONLY:
+				return EFAULT;
+			default:
+				return EINVAL;
+		}
+
+
 
         return EFAULT;
 }
