@@ -63,7 +63,7 @@ as_create(void)
          */
 
 		//Add*****************************
-		as->pageTable = (paddr_t **)alloc_kpages(1);
+		as->pageTable = (paddr_t**)alloc_kpages(1);
 		if(as->pageTable == NULL){
 			kfree(as);
 			return NULL;		
@@ -73,7 +73,7 @@ as_create(void)
 			as->pageTable[i] = NULL;
 		}
 
-		//as->regions = NULL;		
+		as->regionList = NULL;		
 		//********************************
 
         return as;
@@ -82,16 +82,16 @@ as_create(void)
 int
 as_copy(struct addrspace *old, struct addrspace **ret)
 {
-        struct addrspace *newas;
+        struct addrspace *new_addr;
 
-        newas = as_create();
-        if (newas==NULL) {
+        new_addr = as_create();
+        if (new_addr==NULL) {
                 return ENOMEM;
         }
 
         //Add*****************
         struct region* old_region = old->regionList;
-		struct region* new_region = newas->regionList;
+		struct region* new_region = new_addr->regionList;
 
 		while(old_region != NULL){
 			struct region* reg = kmalloc(sizeof(struct region));
@@ -106,7 +106,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 				reg->size_of_pages = old_region->size_of_pages;
 
 				if(new_region == NULL){
-					newas->regionList = reg;
+					new_addr->regionList = reg;
 				}else{
 					new_region->next = reg;
 				} 
@@ -121,17 +121,17 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 			if(old->pageTable == NULL){
 				continue;
 			}
-			newas->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
+			new_addr->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
 			for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
 
 				if(old->pageTable[i][j] == 0){
-					newas->pageTable = 0;				
+					new_addr->pageTable = 0;				
 				}else{
 					vaddr_t frame_addr_new = alloc_kpages(1);
 					//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
 					memmove((void*)frame_addr_new, (const void *)PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME), PAGE_SIZE);
 					//dirty = 
-					newas->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
+					new_addr->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
 				}
 				
 			}
@@ -142,7 +142,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 
         //(void)old;
 
-        *ret = newas;
+        *ret = new_addr;
         return 0;
 }
 
@@ -290,11 +290,11 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 			as->regionList = reg;
 		}
 
-        (void)as;
-        (void)vaddr;
-        (void)memsize;
+        //(void)as;
+        //(void)vaddr;
+        //(void)memsize;
         (void)readable;
-        (void)writeable;
+        //(void)writeable;
         (void)executable;
         //return ENOSYS; /* Unimplemented */
 		return 0;
@@ -315,7 +315,7 @@ as_prepare_load(struct addrspace *as)
 		}
 		//******************
 
-        (void)as;
+        //(void)as;
         return 0;
 }
 
@@ -334,7 +334,7 @@ as_complete_load(struct addrspace *as)
 			curr = curr->next;
 		}
 
-        (void)as;
+        //(void)as;
 
 		int s = splhigh();
 
@@ -356,7 +356,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
          * Write this.
          */
 
-        (void)as;
+        //(void)as;
 	
 		//Add*********************
 		int res = as_define_region(as, USERSTACK - (12 * PAGE_SIZE), (12 * PAGE_SIZE), 1, 1, 1);
