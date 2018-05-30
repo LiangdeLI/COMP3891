@@ -125,7 +125,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 			for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
 
 				if(old->pageTable[i][j] == 0){
-					new_addr->pageTable = 0;				
+					new_addr->pageTable[i][j] = 0;				
 				}else{
 					vaddr_t frame_addr_new = alloc_kpages(1);
 					//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
