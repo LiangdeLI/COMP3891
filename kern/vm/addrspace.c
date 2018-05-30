@@ -358,10 +358,12 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
         (void)as;
 	
+		//Add*********************
 		int res = as_define_region(as, USERSTACK - (12 * PAGE_SIZE), (12 * PAGE_SIZE), 1, 1, 1);
 		if(res){
 			return res;
 		}
+		//************************
 
         /* Initial user-level stack pointer */
         *stackptr = USERSTACK;
