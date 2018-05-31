@@ -173,7 +173,7 @@ void init_frametable(){
 		paddr_t paddr_firstfree = ram_getfirstfree();
 		unsigned int frame_firstfree = paddr_firstfree >> 12;
 		//Remove the frames used for kernel from free list				
-		for(unsigned int i = 0; i <= frame_firstfree+1; i++){
+		for(unsigned int i = 0; i <= frame_firstfree; i++){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
 			frameTable[i].used = true;
@@ -182,7 +182,7 @@ void init_frametable(){
 		}
 		
 		
-		//Remove the frames used for frame trable from free list
+		//Remove the frames used for frame table from free list
 		unsigned int frame_loc = location >> 12;
 		for(unsigned int i = size_of_frames-1; i>= frame_loc; i--){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
