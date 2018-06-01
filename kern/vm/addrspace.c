@@ -137,7 +137,6 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-	//Add************************
 	/*
     * Clean up as needed.
     */
@@ -151,28 +150,17 @@ as_destroy(struct addrspace *as)
 	while(cur != NULL){
 		cur = cur->next;
 		kfree(prev);
+		KASSERT(prev==NULL);
 		prev = cur;
 	}
 
 	if(prev!=NULL){
 		kfree(prev);
-	}
-
-	//Free the pagetables
-	for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
-		if(as->pageTable[i] == NULL){
-			continue;
-		}
-		for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
-			if(as->pageTable[i][j] != 0){
-				free_kpages(PADDR_TO_KVADDR(as->pageTable[i][j] & PAGE_FRAME));			
-			}
-		}
-		kfree(as->pageTable[i]);
+		KASSERT(prev==NULL);
 	}
 
     kfree(as);
-	//****************************
+    KASSERT(as==NULL);
 }
 
 void

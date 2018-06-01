@@ -72,7 +72,7 @@ struct addrspace {
         paddr_t as_stackpbase;
 #else
 		/* Put stuff here for your VM system */
-		//paddr_t** pageTable;
+		paddr_t** pageTable;
 		struct region* regionList;    
 		
 #endif
