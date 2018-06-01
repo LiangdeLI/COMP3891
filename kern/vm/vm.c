@@ -179,11 +179,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         (void) faulttype;
         (void) faultaddress;
 		
-		int f;
-		//int res;
-		uint32_t dir_bit = 0; //Mark
-		uint32_t low_entry;
-		uint32_t high_entry;
+		// int f;
+		// int res;
+		// uint32_t dir_bit = 0; //Mark
+		// uint32_t low_entry;
+		// uint32_t high_entry;
 
 
         //panic("vm_fault hasn't been written yet\n");
@@ -198,17 +198,58 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 				return EINVAL;
 		}
 
-		struct addrspace *curr_addr = proc_getas();
-		paddr_t** pt_pointer = curr_addr->pageTable;
+		struct addrspace *curr_as = proc_getas();
+		//paddr_t** pt_pointer = curr_as->pageTable;
 
-
-		if(curr_addr == NULL || pt_pointer == NULL){
+		if(curr_as == NULL){
 			return EFAULT;
 		}
 
+		// Lookup hpt
+		vaddr_t old_VPN = faultaddress&PAGE_FRAME;
+		struct hpt_entry* old_hpt_entry = hpt_lookup(curr_as, old_VPN);
+		
+		// Load TLB
+		if(old_hpt_entry!=NULL)
+		{
+			int s = splhigh();
+			tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
+			splx(s);
+		}
+
+		// Lookup regions
+        struct region* curr = curr_as->regionList;
+        if(curr == NULL) 
+        {
+            return EFAULT;
+        }
+
+        while(curr != NULL) 
+        {
+            if (curr->vir_base + curr->num_of_pages*PAGE_SIZE) > faultaddress 
+            				&& (curr->vir_base <= faultaddress) 
+            {
+                break;
+            }
+            curr = curr->next;
+        }
+
+        // No valid region
+        if(curr==NULL)
+        {
+            return EFAULT;
+        }
+
+		
 
 
-		paddr_t fault_paddr = KVADDR_TO_PADDR(faultaddress);
+
+
+
+
+
+
+		
 
 		uint32_t root_index = fault_paddr >> 22;		
 		uint32_t second_index = fault_paddr << 10 >> 22;
@@ -233,7 +274,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		}
 
 		if(pt_pointer[root_index][second_index] == 0){
-			struct region* curr = curr_addr->regionList;
+			struct region* curr = curr_as->regionList;
 			while(curr != NULL){
 				if((curr->vir_base + (curr->num_of_pages * PAGE_SIZE) > faultaddress) && (curr->vir_base <= faultaddress)){
 					if(curr->writeable == 0){
