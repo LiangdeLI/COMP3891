@@ -89,8 +89,8 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 			}else{
 				reg->next = NULL;
 				reg->vir_base = old_region -> vir_base;				
-				reg->w_bit = old_region->w_bit;
-				reg->prev_w_bit = old_region->prev_w_bit;
+				reg->writeable = old_region->writeable;
+				reg->prev_writeable = old_region->prev_writeable;
 				reg->num_of_pages = old_region->num_of_pages;
 
 				if(new_region == NULL){
@@ -141,7 +141,7 @@ as_destroy(struct addrspace *as)
     * Clean up as needed.
     */
 
-	//Free the regions
+	//Free all regions with their hpt_entrys and physical memory
 	struct region* prev;
 	struct region* cur;
 	cur = as->regionList;
@@ -149,13 +149,13 @@ as_destroy(struct addrspace *as)
 		
 	while(cur != NULL){
 		cur = cur->next;
-		kfree(prev);
+		region_destroy(prev);
 		KASSERT(prev==NULL);
 		prev = cur;
 	}
 
 	if(prev!=NULL){
-		kfree(prev);
+		region_destroy(prev);
 		KASSERT(prev==NULL);
 	}
 
@@ -243,8 +243,8 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 		reg->next = NULL;
 		reg->vir_base = vaddr;
-		reg->w_bit = writeable;
-		reg->prev_w_bit = reg->w_bit;
+		reg->writeable = writeable;
+		reg->prev_writeable = reg->writeable;
 		reg->num_of_pages = num_of_pages;
 		
 
@@ -286,8 +286,8 @@ as_prepare_load(struct addrspace *as)
 		//Add****************
 		struct region* curr = as->regionList;
 		while(curr != NULL){
-			curr->prev_w_bit = curr->w_bit;
-			curr->w_bit = 1;
+			curr->prev_writeable = curr->writeable;
+			curr->writeable = 1;
 			curr = curr->next;
 		}
 		//******************
@@ -307,7 +307,7 @@ as_complete_load(struct addrspace *as)
 		//Add*****************
 		struct region* curr = as->regionList;
 		while(curr != NULL){
-			curr->w_bit = curr->prev_w_bit;
+			curr->writeable = curr->prev_writeable;
 			curr = curr->next;
 		}
 
@@ -348,3 +348,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         return 0;
 }
 
+void region_destroy(struct region* region)
+{
+	(void) region;
+}

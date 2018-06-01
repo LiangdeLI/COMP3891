@@ -52,13 +52,13 @@ struct vnode;
 struct region{
     vaddr_t vir_base;
     size_t num_of_pages;
-    uint32_t w_bit;
-    uint32_t prev_w_bit;
+    int readable;
+    int writeable;
+    int executable;
+    int prev_writeable;
     struct region* next;	
 };
 //*************************
-
-
 
 
 struct addrspace {
@@ -77,6 +77,8 @@ struct addrspace {
 		
 #endif
 };
+
+void region_destroy(struct region* region);
 
 /*
  * Functions in addrspace.c:

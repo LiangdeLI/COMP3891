@@ -236,7 +236,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			struct region* curr = curr_addr->regionList;
 			while(curr != NULL){
 				if((curr->vir_base + (curr->num_of_pages * PAGE_SIZE) > faultaddress) && (curr->vir_base <= faultaddress)){
-					if(curr->w_bit == 0){
+					if(curr->writeable == 0){
 						dir_bit = 0;
 					}else{
 						dir_bit = TLBLO_DIRTY;
