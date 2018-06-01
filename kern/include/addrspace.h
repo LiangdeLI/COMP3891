@@ -87,6 +87,8 @@ void region_destroy(struct addrspace* as, struct region* region);
 
 void as_add_region(struct addrspace *as, struct region *new_region);
 
+struct region* region_copy(struct addrspace* old, struct region* old_region);
+
 /*
  * Functions in addrspace.c:
  *

@@ -73,62 +73,80 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         struct addrspace *new_addr;
 
         new_addr = as_create();
-        if (new_addr==NULL) {
+        if (new_addr==NULL) 
+        {
                 return ENOMEM;
         }
 
         //Add*****************
         struct region* old_region = old->regionList;
-		struct region* new_region = new_addr->regionList;
+		struct region* new_region = new_addr->regionList;		
 
-		while(old_region != NULL){
-			struct region* reg = kmalloc(sizeof(struct region));
-			if(reg == NULL){
+		while(old_region != NULL)
+		{
+			struct region* reg = region_copy(old, old_region);
+			if(reg == NULL)
+			{
 				//as_destroy();
 				return ENOMEM;			
-			}else{
-				reg->next = NULL;
-				reg->vir_base = old_region -> vir_base;				
-				reg->writeable = old_region->writeable;
-				reg->prev_writeable = old_region->prev_writeable;
-				reg->num_of_pages = old_region->num_of_pages;
+			}
 
-				if(new_region == NULL){
-					new_addr->regionList = reg;
-				}else{
-					new_region->next = reg;
-				} 
+			// If reg is the first region 
+			if(new_addr->regionList==NULL)
+			{
+				new_addr->regionList = reg;
 				new_region = reg;
-				old_region = old_region->next;
+			}
+			else
+			{
+				new_region->next = reg;
+				new_region = reg;
 			}
 
-			
+			old_region = old_region->next;
 		}
 
-		for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
-			if(old->pageTable == NULL){
-				continue;
-			}
-			new_addr->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
-			for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
 
-				if(old->pageTable[i][j] == 0){
-					new_addr->pageTable[i][j] = 0;				
-				}else{
-					vaddr_t frame_addr_new = alloc_kpages(1);
-					//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
-					memmove((void*)frame_addr_new, (const void *)PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME), PAGE_SIZE);
-					//dirty = 
-					new_addr->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
-				}
+
+		// 	else{
+		// 		reg->next = NULL;
+		// 		reg->vir_base = old_region -> vir_base;				
+		// 		reg->writeable = old_region->writeable;
+		// 		reg->prev_writeable = old_region->prev_writeable;
+		// 		reg->num_of_pages = old_region->num_of_pages;
+
+		// 		if(new_region == NULL){
+		// 			new_addr->regionList = reg;
+		// 		}else{
+		// 			new_region->next = reg;
+		// 		} 
+		// 		new_region = reg;
+		// 		old_region = old_region->next;
+		// 	}	
+		// }
+
+		// for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
+		// 	if(old->pageTable == NULL){
+		// 		continue;
+		// 	}
+		// 	new_addr->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
+		// 	for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
+
+		// 		if(old->pageTable[i][j] == 0){
+		// 			new_addr->pageTable[i][j] = 0;				
+		// 		}else{
+		// 			vaddr_t frame_addr_new = alloc_kpages(1);
+		// 			//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
+		// 			memmove((void*)frame_addr_new, (const void *)PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME), PAGE_SIZE);
+		// 			//dirty = 
+		// 			new_addr->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
+		// 		}
 				
-			}
-		}
+		// 	}
+		// }
 
 
         //*******************
-
-        //(void)old;
 
         *ret = new_addr;
         return 0;
@@ -380,4 +398,11 @@ void region_destroy(struct addrspace* as, struct region* region)
 
     kfree(region);
     KASSERT(region==NULL);
+}
+
+struct region* region_copy(struct addrspace* old, struct region* old_region)
+{
+	(void) old_region;
+	(void) old;
+	return NULL;
 }
