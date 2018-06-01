@@ -42,9 +42,15 @@ struct hpt_entry{
 	int pid;
 	uint32_t VPN;
 	uint32_t PFN; 
-	struct hpt_entry * next_entry;
+	struct hpt_entry * next;
 };
 
+struct hpt_entry * hash_page_table = NULL;
+
+unsigned int num_of_hpt_entry=0;
+
+// Lock for hpt
+static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
@@ -55,6 +61,7 @@ struct hpt_entry{
 /* Initialization function */
 void vm_bootstrap(void);
 void init_frametable(void);
+void init_hpt(void);
 
 /* Fault handling function called by trap code */
 int vm_fault(int faulttype, vaddr_t faultaddress);
