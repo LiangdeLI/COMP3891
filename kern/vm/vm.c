@@ -136,27 +136,27 @@ int hpt_delete(struct addrspace * as, vaddr_t VPN)
 
 struct hpt_entry * hpt_lookup(struct addrspace * as, vaddr_t VPN) 
 {
-        uint32_t index = hpt_hash(as, VPN);
+    uint32_t index = hpt_hash(as, VPN);
 
-        struct hpt_entry * curr = hash_page_table[index];
-        
-        spinlock_acquire(&hpt_lock);
+    struct hpt_entry * curr = hash_page_table[index];
+    
+    spinlock_acquire(&hpt_lock);
 
-        while(curr != NULL) 
+    while(curr != NULL) 
+    {
+        if(curr->pid==as && curr->VPN==VPN) 
         {
-            if(curr->pid==as && curr->VPN==VPN) 
+            if( (curr->PFN&TLBLO_VALID) == TLBLO_VALID) 
             {
-                if( (curr->PFN&TLBLO_VALID) == TLBLO_VALID) 
-                {
-                    spinlock_release(&hpt_lock);
-                    return curr;
-                } 
-            }
-            curr = curr->next;
+                spinlock_release(&hpt_lock);
+                return curr;
+            } 
         }
+        curr = curr->next;
+    }
 
-        spinlock_release(&hpt_lock);
-        return NULL;
+    spinlock_release(&hpt_lock);
+    return NULL;
 }
 
 void vm_bootstrap(void)

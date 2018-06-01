@@ -149,13 +149,13 @@ as_destroy(struct addrspace *as)
 		
 	while(cur != NULL){
 		cur = cur->next;
-		region_destroy(prev);
+		region_destroy(as, prev);
 		KASSERT(prev==NULL);
 		prev = cur;
 	}
 
 	if(prev!=NULL){
-		region_destroy(prev);
+		region_destroy(as, prev);
 		KASSERT(prev==NULL);
 	}
 
@@ -348,7 +348,31 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         return 0;
 }
 
-void region_destroy(struct region* region)
+void region_destroy(struct addrspace* as, struct region* region)
 {
-	(void) region;
+	if(region==NULL) return;
+    
+
+    for(unsigned int i=0; i<region->num_of_pages; ++i) {
+    	// Find VPN
+    	vaddr_t VPN = region->vir_base & PAGE_FRAME;
+    	VPN += i*PAGE_SIZE;
+    	
+    	// Find the coresponding hpt_entry
+        struct hpt_entry * curr_hpt_entry = hpt_lookup(as, VPN);
+
+        if(curr_hpt_entry != NULL) {
+            // Get PFN, get rid of N,D,V,G bits
+            paddr_t PFN = curr_hpt_entry->PFN & PAGE_FRAME;
+            
+            // free physical frame
+            kfree((void *)PADDR_TO_KVADDR(PFN));
+
+            // delete corresponding entry in hash_page_table
+            hpt_delete(as, VPN);
+        }
+    }
+
+    kfree(region);
+    KASSERT(region==NULL);
 }

@@ -78,7 +78,7 @@ struct addrspace {
 #endif
 };
 
-void region_destroy(struct region* region);
+void region_destroy(struct addrspace* as, struct region* region);
 
 /*
  * Functions in addrspace.c:
