@@ -70,86 +70,46 @@ as_create(void)
 int
 as_copy(struct addrspace *old, struct addrspace **ret)
 {
-        struct addrspace *new_addr;
+    struct addrspace *new_addr;
 
-        new_addr = as_create();
-        if (new_addr==NULL) 
-        {
-                return ENOMEM;
-        }
+    new_addr = as_create();
+    if (new_addr==NULL) 
+    {
+            return ENOMEM;
+    }
 
-        //Add*****************
-        struct region* old_region = old->regionList;
-		struct region* new_region = new_addr->regionList;		
+    //Add*****************
+    struct region* old_region = old->regionList;
+	struct region* new_region = new_addr->regionList;		
 
-		while(old_region != NULL)
+	while(old_region != NULL)
+	{
+		struct region* reg = region_copy(new_addr, old, old_region);
+		if(reg == NULL)
 		{
-			struct region* reg = region_copy(old, old_region);
-			if(reg == NULL)
-			{
-				//as_destroy();
-				return ENOMEM;			
-			}
-
-			// If reg is the first region 
-			if(new_addr->regionList==NULL)
-			{
-				new_addr->regionList = reg;
-				new_region = reg;
-			}
-			else
-			{
-				new_region->next = reg;
-				new_region = reg;
-			}
-
-			old_region = old_region->next;
+			//as_destroy();
+			return ENOMEM;			
 		}
 
+		// If reg is the first region 
+		if(new_addr->regionList==NULL)
+		{
+			new_addr->regionList = reg;
+			new_region = reg;
+		}
+		else
+		{
+			new_region->next = reg;
+			new_region = reg;
+		}
 
+		old_region = old_region->next;
+	}
 
-		// 	else{
-		// 		reg->next = NULL;
-		// 		reg->vir_base = old_region -> vir_base;				
-		// 		reg->writeable = old_region->writeable;
-		// 		reg->prev_writeable = old_region->prev_writeable;
-		// 		reg->num_of_pages = old_region->num_of_pages;
+    //*******************
 
-		// 		if(new_region == NULL){
-		// 			new_addr->regionList = reg;
-		// 		}else{
-		// 			new_region->next = reg;
-		// 		} 
-		// 		new_region = reg;
-		// 		old_region = old_region->next;
-		// 	}	
-		// }
-
-		// for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
-		// 	if(old->pageTable == NULL){
-		// 		continue;
-		// 	}
-		// 	new_addr->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
-		// 	for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
-
-		// 		if(old->pageTable[i][j] == 0){
-		// 			new_addr->pageTable[i][j] = 0;				
-		// 		}else{
-		// 			vaddr_t frame_addr_new = alloc_kpages(1);
-		// 			//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
-		// 			memmove((void*)frame_addr_new, (const void *)PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME), PAGE_SIZE);
-		// 			//dirty = 
-		// 			new_addr->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
-		// 		}
-				
-		// 	}
-		// }
-
-
-        //*******************
-
-        *ret = new_addr;
-        return 0;
+    *ret = new_addr;
+    return 0;
 }
 
 void
@@ -400,9 +360,43 @@ void region_destroy(struct addrspace* as, struct region* region)
     KASSERT(region==NULL);
 }
 
-struct region* region_copy(struct addrspace* old, struct region* old_region)
+struct region* region_copy(struct addrspace* new_as, 
+						struct addrspace* old, struct region* old_region)
 {
-	(void) old_region;
-	(void) old;
-	return NULL;
+	if(old_region==NULL) return NULL;
+
+	struct region* new_region 
+			= region_create(old_region->vir_base, 
+							old_region->num_of_pages, 
+							old_region->readable,
+                            old_region->writeable, 
+                            old_region->executable);
+
+	for(unsigned int i=0; i<old_region->num_of_pages; ++i)
+	{
+		struct hpt_entry* old_hpt_entry= hpt_lookup(old, old_region->vir_base+i*PAGE_SIZE);
+		
+		// No hpt_entry, this page not used yet
+		if (old_hpt_entry==NULL) continue;
+
+		// Get a frame in frameTable
+		vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+		KASSERT(VPN!=0);
+
+		// Convert to virtual address
+		paddr_t PFN = KVADDR_TO_PADDR(VPN);
+		PFN &= PAGE_FRAME;
+
+		// Get the physical address of old frame
+		paddr_t old_PFN = old_hpt_entry->PFN;
+		old_PFN &= PAGE_FRAME;
+
+		// Copy the contain of the frame
+		memmove((void*)PFN, (const void*)old_PFN, PAGE_SIZE);
+
+		// Create a new hpt_entry and insert into hpt
+		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
+	}
+
+	return new_region;
 }
