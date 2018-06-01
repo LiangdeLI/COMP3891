@@ -72,6 +72,8 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 
 int hpt_delete(struct addrspace * as, vaddr_t VPN);
 
+struct hpt_entry * hpt_lookup(struct addrspace * as, vaddr_t VPN); 
+
 // Hash function for hpt
 // The following hash function will combine the address of the struct addrspace 
 // and faultaddr address to reduce hash collisions between processes 
