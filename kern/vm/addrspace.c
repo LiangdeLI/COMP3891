@@ -51,20 +51,20 @@
 struct addrspace *
 as_create(void)
 {
-        struct addrspace *as;
+    struct addrspace *as;
 
-        as = kmalloc(sizeof(struct addrspace));
-        if (as == NULL) {
-                return NULL;
-        }
+    as = kmalloc(sizeof(struct addrspace));
+    if (as == NULL) {
+            return NULL;
+    }
 
-        /*
-         * Initialize as needed.
-         */
+    /*
+     * Initialize as needed.
+     */
 
-		as->regionList = NULL;		
+	as->regionList = NULL;		
 
-        return as;
+    return as;
 }
 
 int
@@ -166,47 +166,45 @@ as_destroy(struct addrspace *as)
 void
 as_activate(void)
 {
-        struct addrspace *as;
+    struct addrspace *as;
 
-        as = proc_getas();
-        if (as == NULL) {
-                /*
-                 * Kernel thread without an address space; leave the
-                 * prior address space in place.
-                 */
-                return;
-        }
+    as = proc_getas();
+    if (as == NULL) {
+            /*
+             * Kernel thread without an address space; leave the
+             * prior address space in place.
+             */
+            return;
+    }
 
-        /*
-         * Write this.
-         */
-		//Add*********************************
-		int s = splhigh();
-		
-		//flush the TLB		
-		for(int i = 0; i < NUM_TLB; i++){
-			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);		
-		}
+    /*
+     * Write this.
+     */
+	//Add*********************************
+	int s = splhigh();
+	
+	//flush the TLB		
+	for(int i = 0; i < NUM_TLB; i++){
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);		
+	}
 
-		splx(s);
-		//************************************
+	splx(s);
+	//************************************
 
 }
 
 void
 as_deactivate(void)
 {
-        /*
-         * Write this. For many designs it won't need to actually do
-         * anything. See proc.c for an explanation of why it (might)
-         * be needed.
-         */
+    /*
+     * Write this. For many designs it won't need to actually do
+     * anything. See proc.c for an explanation of why it (might)
+     * be needed.
+     */
 
-		//Add*********************************
-		as_activate();
-		//************************************
-
-
+	//Add*********************************
+	as_activate();
+	//************************************
 }
 
 /*
@@ -271,72 +269,68 @@ void as_add_region(struct addrspace *as, struct region *new_region)
 int
 as_prepare_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
-		//Add****************
-		struct region* curr = as->regionList;
-		while(curr != NULL){
-			curr->prev_writeable = curr->writeable;
-			curr->writeable = 1;
-			curr = curr->next;
-		}
-		//******************
+    /*
+     * Write this.
+     */
+	//Add****************
+	struct region* curr = as->regionList;
+	while(curr != NULL){
+		curr->prev_writeable = curr->writeable;
+		curr->writeable = 1;
+		curr = curr->next;
+	}
+	//******************
 
-        //(void)as;
-        return 0;
+    //(void)as;
+    return 0;
 }
 
 int
 as_complete_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
+    /*
+     * Write this.
+     */
 
 
-		//Add*****************
-		struct region* curr = as->regionList;
-		while(curr != NULL){
-			curr->writeable = curr->prev_writeable;
-			curr = curr->next;
-		}
+	//Add*****************
+	struct region* curr = as->regionList;
+	while(curr != NULL){
+		curr->writeable = curr->prev_writeable;
+		curr = curr->next;
+	}
 
-        //(void)as;
+	int s = splhigh();
 
-		int s = splhigh();
+	//Flush the tlb
+	for (int i = 0; i< NUM_TLB; i++){
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+	}
+	
+	splx(s);
 
-		//Flush the tlb
-		for (int i = 0; i< NUM_TLB; i++){
-			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
-		}
-		
-		splx(s);
-
-		//********************
-        return 0;
+	//********************
+    return 0;
 }
 
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        /*
-         * Write this.
-         */
-
-        //(void)as;
+    /*
+     * Write this.
+     */	
 	
-		//Add*********************
-		int res = as_define_region(as, USERSTACK - (12 * PAGE_SIZE), (12 * PAGE_SIZE), 1, 1, 1);
-		if(res){
-			return res;
-		}
-		//************************
+	int res = as_define_region(as, USERSTACK - (STACK_SIZE_IN_PAGE * PAGE_SIZE), 
+								(STACK_SIZE_IN_PAGE * PAGE_SIZE), 1, 1, 1);
+	
+	if(res){
+		return res;
+	}
 
-        /* Initial user-level stack pointer */
-        *stackptr = USERSTACK;
+    /* Initial user-level stack pointer */
+    *stackptr = USERSTACK;
 
-        return 0;
+    return 0;
 }
 
 struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,

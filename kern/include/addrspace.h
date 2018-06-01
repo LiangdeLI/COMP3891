@@ -40,6 +40,8 @@
 
 struct vnode;
 
+// From assignment spec
+#define STACK_SIZE_IN_PAGE 16
 
 /*
  * Address space - data structure associated with the virtual memory
