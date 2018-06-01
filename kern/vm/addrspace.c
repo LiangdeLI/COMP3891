@@ -62,19 +62,7 @@ as_create(void)
          * Initialize as needed.
          */
 
-		//Add*****************************
-		as->pageTable = (paddr_t**)alloc_kpages(1);
-		if(as->pageTable == NULL){
-			kfree(as);
-			return NULL;		
-		}
-
-		for(int i = 0; i < SIZE_OF_PAGETABLE; i++){
-			as->pageTable[i] = NULL;
-		}
-
 		as->regionList = NULL;		
-		//********************************
 
         return as;
 }
