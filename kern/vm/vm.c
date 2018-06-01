@@ -28,7 +28,7 @@ void init_hpt(void)
 
 	for(int i=0; i<hpt_size; ++i)
 	{
-		hash_page_table[i].pid = -1;
+		hash_page_table[i].pid = 0;
 		hash_page_table[i].VPN = 0;
 		hash_page_table[i].PFN = 0;
 		hash_page_table[i].next = NULL;
@@ -43,6 +43,56 @@ uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr)
         return index;
 }
 
+struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
+									int n_bit, int d_bit, int v_bit)
+{
+    if(n_bit == 1) {
+        PFN = PFN | TLBLO_NOCACHE; 
+    }
+    if(d_bit == 1) {
+        PFN = PFN | TLBLO_DIRTY;
+    }
+    if(v_bit == 1) {
+        PFN = PFN | TLBLO_VALID;
+    }
+	
+    uint32_t index = hpt_hash(as, VPN);
+
+	struct hpt_entry * new_hpt_entry = hash_page_table + index;
+
+	if(new_hpt_entry->pid==0 && new_hpt_entry->VPN==0 && new_hpt_entry->PFN==0)
+	{
+		new_hpt_entry->pid = as;
+		new_hpt_entry->VPN = VPN;
+		new_hpt_entry->PFN = PFN;
+		new_hpt_entry->next = NULL;
+		return new_hpt_entry;
+	}
+
+	while(new_hpt_entry->next!=NULL)
+	{
+		new_hpt_entry = new_hpt_entry->next;
+	}
+
+	struct hpt_entry * tail_hpt_entry = new_hpt_entry;
+
+	for(int i=0; i<hpt_size; ++i)
+	{
+		new_hpt_entry = hash_page_table + i;
+		if(new_hpt_entry->pid==0 && new_hpt_entry->VPN==0 && new_hpt_entry->PFN==0)
+		{
+			new_hpt_entry->pid = as;
+			new_hpt_entry->VPN = VPN;
+			new_hpt_entry->PFN = PFN;
+			new_hpt_entry->next = NULL;
+			tail_hpt_entry->next = new_hpt_entry;
+			return new_hpt_entry;
+		}
+	}
+
+	// Cannot insert, no free slot
+	return 0;
+}
 
 void vm_bootstrap(void)
 {

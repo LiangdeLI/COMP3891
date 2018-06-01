@@ -39,8 +39,7 @@
 #include <machine/vm.h>
 
 struct hpt_entry{
-	struct addrspace * p;
-	int pid;
+	struct addrspace * pid;
 	uint32_t VPN;
 	uint32_t PFN; 
 	struct hpt_entry * next;
@@ -69,6 +68,10 @@ void init_frametable(void);
 
 // Initial hpt, the bump allocator will be used
 void init_hpt(void);
+
+// Insert into one free slot of hpt
+struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
+									int n_bit, int d_bit, int v_bit);
 
 // Hash function for hpt
 // The following hash function will combine the address of the struct addrspace 
