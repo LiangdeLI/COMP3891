@@ -17,15 +17,16 @@ void init_hpt(void)
 	paddr_t top_of_ram = ram_getsize();
 	
 	// Get the number of frames		
-	unsigned int num_of_frames = (top_of_ram)/PAGE_SIZE;
+	int num_of_frames = (top_of_ram)/PAGE_SIZE;
 	
 	// Allocate two times of slots for each frame
-	num_of_hpt_entry = 2*num_of_frames;
-
+	hpt_size = 2*num_of_frames;
+	//kprintf("hpt_size is %d\n",hpt_size);
 	// Bump allocator will be used
-	hash_page_table = (struct hpt_entry*) kmalloc(sizeof(struct hpt_entry)*num_of_hpt_entry);
+	hash_page_table = (struct hpt_entry*) kmalloc(sizeof(struct hpt_entry)*hpt_size);
+	KASSERT(hash_page_table!=NULL);
 
-	for(int i=0; i<num_of_hpt_entry; ++i)
+	for(int i=0; i<hpt_size; ++i)
 	{
 		hash_page_table[i].pid = -1;
 		hash_page_table[i].VPN = 0;
@@ -34,6 +35,15 @@ void init_hpt(void)
 	}
 }
 
+uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr)
+{
+        uint32_t index;
+
+        index = (((uint32_t )as) ^ (faultaddr >> PAGE_BITS)) % hpt_size;
+        return index;
+}
+
+
 void vm_bootstrap(void)
 {
         /* Initialise VM sub-system.  You probably want to initialise your 
@@ -41,6 +51,8 @@ void vm_bootstrap(void)
         */
 		
 		//Add*******************************************************
+		// init hpt first, so will use bump allocator
+		init_hpt();
 		init_frametable();
 		//*******************************************************
 

@@ -39,18 +39,21 @@
 #include <machine/vm.h>
 
 struct hpt_entry{
+	struct addrspace * p;
 	int pid;
 	uint32_t VPN;
 	uint32_t PFN; 
 	struct hpt_entry * next;
 };
 
-struct hpt_entry * hash_page_table = NULL;
+struct hpt_entry * hash_page_table;
 
-unsigned int num_of_hpt_entry=0;
+int hpt_size;
 
 // Lock for hpt
-static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
+//static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
+
+#define PAGE_BITS  12
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
@@ -60,8 +63,18 @@ static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
 
 /* Initialization function */
 void vm_bootstrap(void);
+
+// Initial frametable
 void init_frametable(void);
+
+// Initial hpt, the bump allocator will be used
 void init_hpt(void);
+
+// Hash function for hpt
+// The following hash function will combine the address of the struct addrspace 
+// and faultaddr address to reduce hash collisions between processes 
+// (processes using similar address ranges).
+uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr);
 
 /* Fault handling function called by trap code */
 int vm_fault(int faulttype, vaddr_t faultaddress);

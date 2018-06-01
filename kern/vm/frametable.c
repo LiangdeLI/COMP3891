@@ -48,26 +48,22 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 vaddr_t alloc_kpages(unsigned int npages)
 {
         //***************
-	
-		//If we support only one page
-		if(npages != 1){
-			return 0;
-		}
 		
-		//If there is no more free frame
-		if (first_free_index == -1){
-			return 0;
-		}
-
-        //*************
-
-        paddr_t addr = 0; //Initialization to 0
-
-  		
 		//******
-
+		paddr_t addr = 0; //Initialization to 0
 		spinlock_acquire(&frameTable_lock);     
+		
 		if(frameTable != NULL){
+			//we support only one page
+			if(npages != 1){
+				return 0;
+			}
+			
+			//If there is no more free frame
+			if (first_free_index == -1){
+				return 0;
+			}
+			
 			addr = first_free_index << 12;
 			
 			//
@@ -172,7 +168,7 @@ void init_frametable(){
 
 		paddr_t paddr_firstfree = ram_getfirstfree();
 		unsigned int frame_firstfree = paddr_firstfree >> 12;
-		//Remove the frames used for kernel from free list				
+		//Remove the frames used for kernel and hpt from free list				
 		for(unsigned int i = 0; i <= frame_firstfree; i++){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
