@@ -50,7 +50,7 @@ struct hpt_entry * hash_page_table;
 int hpt_size;
 
 // Lock for hpt
-//static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
+static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
 
 #define PAGE_BITS  12
 

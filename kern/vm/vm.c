@@ -8,6 +8,7 @@
 //ADD
 #include <spl.h>
 #include <proc.h>
+#include <synch.h>
 //
 
 /* Place your page table functions here */
@@ -60,12 +61,15 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 
 	struct hpt_entry * new_hpt_entry = hash_page_table + index;
 
+	spinlock_acquire(&hpt_lock);
+
 	if(new_hpt_entry->pid==0 && new_hpt_entry->VPN==0 && new_hpt_entry->PFN==0)
 	{
 		new_hpt_entry->pid = as;
 		new_hpt_entry->VPN = VPN;
 		new_hpt_entry->PFN = PFN;
 		new_hpt_entry->next = NULL;
+		spinlock_release(&hpt_lock);
 		return new_hpt_entry;
 	}
 
@@ -86,12 +90,31 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 			new_hpt_entry->PFN = PFN;
 			new_hpt_entry->next = NULL;
 			tail_hpt_entry->next = new_hpt_entry;
+			spinlock_release(&hpt_lock);
 			return new_hpt_entry;
 		}
 	}
-
+	spinlock_release(&hpt_lock);
 	// Cannot insert, no free slot
 	return 0;
+}
+
+void hpt_delete(struct addrspace * as, vaddr_t VPN)
+{
+    uint32_t index = hpt_hash(as, VPN);
+
+	struct hpt_entry * curr = hash_page_table + index;
+
+	struct hpt_entry * prev = NULL;
+
+	//struct hpt_entry * next = NULL;
+
+	spinlock_acquire(&hpt_lock);
+
+	if(curr->pid==as && curr->VPN==VPN)
+	{
+		
+	}
 }
 
 void vm_bootstrap(void)
