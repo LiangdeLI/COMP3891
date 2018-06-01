@@ -13,13 +13,12 @@
 /* Place your page table functions here */
 
 
+
 void vm_bootstrap(void)
 {
         /* Initialise VM sub-system.  You probably want to initialise your 
            frame table here as well.
         */
-
-		
 		
 		//Add*******************************************************
 		init_frametable();
@@ -89,7 +88,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		if(pt_pointer[root_index][second_index] == 0){
 			struct region* curr = curr_addr->regionList;
 			while(curr != NULL){
-				if((curr->vir_base + (curr->size_of_pages * PAGE_SIZE) > faultaddress) && (curr->vir_base <= faultaddress)){
+				if((curr->vir_base + (curr->num_of_pages * PAGE_SIZE) > faultaddress) && (curr->vir_base <= faultaddress)){
 					if(curr->w_bit == 0){
 						dir_bit = 0;
 					}else{

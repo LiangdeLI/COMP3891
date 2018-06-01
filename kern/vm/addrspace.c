@@ -103,7 +103,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 				reg->vir_base = old_region -> vir_base;				
 				reg->w_bit = old_region->w_bit;
 				reg->prev_w_bit = old_region->prev_w_bit;
-				reg->size_of_pages = old_region->size_of_pages;
+				reg->num_of_pages = old_region->num_of_pages;
 
 				if(new_region == NULL){
 					new_addr->regionList = reg;
@@ -257,7 +257,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 		memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
 
-		size_t size_of_pages = memsize / PAGE_SIZE;
+		size_t num_of_pages = memsize / PAGE_SIZE;
 
 
 		struct region *reg = kmalloc(sizeof(struct region));
@@ -269,7 +269,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 		reg->vir_base = vaddr;
 		reg->w_bit = writeable;
 		reg->prev_w_bit = reg->w_bit;
-		reg->size_of_pages = size_of_pages;
+		reg->num_of_pages = num_of_pages;
 		
 
 		struct region* prev;
@@ -310,7 +310,7 @@ as_prepare_load(struct addrspace *as)
 		//Add****************
 		struct region* curr = as->regionList;
 		while(curr != NULL){
-			curr->prev_w_bit = curr->w_bit
+			curr->prev_w_bit = curr->w_bit;
 			curr->w_bit = 1;
 			curr = curr->next;
 		}

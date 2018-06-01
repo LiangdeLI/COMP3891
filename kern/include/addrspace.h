@@ -50,12 +50,11 @@ struct vnode;
 
 //Add**********************
 struct region{
-	vaddr_t vir_base;
-	size_t size_of_pages;
-	uint32_t w_bit;
-	uint32_t prev_w_bit;
-	struct region* next;
-	
+    vaddr_t vir_base;
+    size_t num_of_pages;
+    uint32_t w_bit;
+    uint32_t prev_w_bit;
+    struct region* next;	
 };
 //*************************
 

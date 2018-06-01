@@ -36,8 +36,15 @@
  * You'll probably want to add stuff here.
  */
 
-
 #include <machine/vm.h>
+
+struct hpt_entry{
+	int pid;
+	uint32_t VPN;
+	uint32_t PFN; 
+	struct hpt_entry * next_entry;
+};
+
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
