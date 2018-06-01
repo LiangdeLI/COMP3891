@@ -240,7 +240,18 @@ vm_fault(int faulttype, vaddr_t faultaddress)
             return EFAULT;
         }
 
-		
+		// Get a frame in frameTable
+		vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+		KASSERT(VPN!=0);
+
+		VPN &= TLBHI_VPAGE;
+
+		// Convert to virtual address
+		paddr_t PFN = KVADDR_TO_PADDR(VPN);
+		PFN &= TLBLO_PPAGE;
+
+		// Create a new hpt_entry and insert into hpt
+		hpt_insert(curr_as, VPN, PFN, 0, curr->writeable, 1);
 
 
 
@@ -249,7 +260,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 
 
-		
+
 
 		uint32_t root_index = fault_paddr >> 22;		
 		uint32_t second_index = fault_paddr << 10 >> 22;
