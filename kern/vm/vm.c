@@ -13,6 +13,9 @@
 
 /* Place your page table functions here */
 
+// Lock for hpt
+static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
+
 void init_hpt(void)
 {
 	paddr_t top_of_ram = ram_getsize();
@@ -22,17 +25,19 @@ void init_hpt(void)
 	
 	// Allocate two times of slots for each frame
 	hpt_size = 2*num_of_frames;
-	//kprintf("hpt_size is %d\n",hpt_size);
+	// kprintf("hpt_size is %d\n",hpt_size);
 	// Bump allocator will be used
-	hash_page_table = (struct hpt_entry*) kmalloc(sizeof(struct hpt_entry)*hpt_size);
+	hash_page_table = (struct hpt_entry**) kmalloc(sizeof(struct hpt_entry*)*hpt_size);
 	KASSERT(hash_page_table!=NULL);
 
 	for(int i=0; i<hpt_size; ++i)
 	{
-		hash_page_table[i].pid = 0;
-		hash_page_table[i].VPN = 0;
-		hash_page_table[i].PFN = 0;
-		hash_page_table[i].next = NULL;
+		// pointing to null, no head yet
+		hash_page_table[i] = NULL;
+		// hash_page_table[i].pid = 0;
+		// hash_page_table[i].VPN = 0;
+		// hash_page_table[i].PFN = 0;
+		// hash_page_table[i].next = NULL;
 	}
 }
 
@@ -59,12 +64,14 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 	
     uint32_t index = hpt_hash(as, VPN);
 
-	struct hpt_entry * new_hpt_entry = hash_page_table + index;
+	struct hpt_entry * new_hpt_entry = hash_page_table[index];
 
 	spinlock_acquire(&hpt_lock);
 
-	if(new_hpt_entry->pid==0 && new_hpt_entry->VPN==0 && new_hpt_entry->PFN==0)
+	if(new_hpt_entry==NULL)
 	{
+		new_hpt_entry = kmalloc(sizeof(struct hpt_entry));
+		KASSERT(new_hpt_entry!=NULL);
 		new_hpt_entry->pid = as;
 		new_hpt_entry->VPN = VPN;
 		new_hpt_entry->PFN = PFN;
@@ -80,41 +87,51 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 
 	struct hpt_entry * tail_hpt_entry = new_hpt_entry;
 
-	for(int i=0; i<hpt_size; ++i)
-	{
-		new_hpt_entry = hash_page_table + i;
-		if(new_hpt_entry->pid==0 && new_hpt_entry->VPN==0 && new_hpt_entry->PFN==0)
-		{
-			new_hpt_entry->pid = as;
-			new_hpt_entry->VPN = VPN;
-			new_hpt_entry->PFN = PFN;
-			new_hpt_entry->next = NULL;
-			tail_hpt_entry->next = new_hpt_entry;
-			spinlock_release(&hpt_lock);
-			return new_hpt_entry;
-		}
-	}
+	new_hpt_entry = kmalloc(sizeof(struct hpt_entry));
+	KASSERT(new_hpt_entry!=NULL);
+	new_hpt_entry->pid = as;
+	new_hpt_entry->VPN = VPN;
+	new_hpt_entry->PFN = PFN;
+	new_hpt_entry->next = NULL;
+	tail_hpt_entry->next = new_hpt_entry;
+	
 	spinlock_release(&hpt_lock);
-	// Cannot insert, no free slot
-	return 0;
+	return new_hpt_entry;
 }
 
-void hpt_delete(struct addrspace * as, vaddr_t VPN)
+int hpt_delete(struct addrspace * as, vaddr_t VPN)
 {
     uint32_t index = hpt_hash(as, VPN);
 
-	struct hpt_entry * curr = hash_page_table + index;
+	struct hpt_entry * curr = hash_page_table[index];
 
 	struct hpt_entry * prev = NULL;
-
-	//struct hpt_entry * next = NULL;
 
 	spinlock_acquire(&hpt_lock);
 
 	if(curr->pid==as && curr->VPN==VPN)
 	{
-		
+		hash_page_table[index]=curr->next;
+		kfree(curr);
+		KASSERT(curr==NULL);
+		spinlock_release(&hpt_lock);
+		return 0;
 	}
+
+	while(curr->next!=NULL)
+	{
+		prev = curr;
+		curr = curr->next;
+		if(curr->pid==as && curr->VPN==VPN)
+		{
+			prev->next=curr->next;
+			kfree(curr);
+			KASSERT(curr==NULL);
+			spinlock_release(&hpt_lock);
+			return 0;
+		}
+	}
+	return 0;
 }
 
 void vm_bootstrap(void)

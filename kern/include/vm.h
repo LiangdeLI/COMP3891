@@ -45,12 +45,9 @@ struct hpt_entry{
 	struct hpt_entry * next;
 };
 
-struct hpt_entry * hash_page_table;
+struct hpt_entry ** hash_page_table;
 
 int hpt_size;
-
-// Lock for hpt
-static struct spinlock hpt_lock = SPINLOCK_INITIALIZER;
 
 #define PAGE_BITS  12
 
@@ -72,6 +69,8 @@ void init_hpt(void);
 // Insert into one free slot of hpt
 struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
 									int n_bit, int d_bit, int v_bit);
+
+int hpt_delete(struct addrspace * as, vaddr_t VPN);
 
 // Hash function for hpt
 // The following hash function will combine the address of the struct addrspace 
