@@ -243,18 +243,11 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	as_add_region(as, new_region);
 
-    //(void)as;
-    //(void)vaddr;
-    //(void)memsize;
-    (void)readable;
-    //(void)writeable;
-    (void)executable;
-    //return ENOSYS; /* Unimplemented */
 	return 0;
 	//***************************************
 }
 
-int as_add_region(struct addrspace *as, struct region *new_region)
+void as_add_region(struct addrspace *as, struct region *new_region)
 {
 	struct region* prev;
 	struct region* curr; 
