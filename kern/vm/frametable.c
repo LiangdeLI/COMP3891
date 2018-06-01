@@ -142,24 +142,24 @@ void init_frametable(){
 		paddr_t top_of_ram = ram_getsize();
 		//Get the number of frames
 		
-		unsigned int size_of_frames = (top_of_ram)/PAGE_SIZE;
-		paddr_t location = top_of_ram - (size_of_frames * sizeof(struct ft_entry));
+		unsigned int num_of_frames = (top_of_ram)/PAGE_SIZE;
+		paddr_t location = top_of_ram - (num_of_frames * sizeof(struct ft_entry));
 
 		//Frame table		
 		frameTable = (struct ft_entry*) PADDR_TO_KVADDR(location);
 
 		//Create frame table entries
 		struct ft_entry ft_e;
-		for(unsigned int i = 0; i < size_of_frames; i++){
+		for(unsigned int i = 0; i < num_of_frames; i++){
 			
 			if(i == 0){
-				ft_e.prev = size_of_frames - 1;				
+				ft_e.prev = num_of_frames - 1;				
 			}else{
 				
 				ft_e.prev = i-1;
 			}
 			
-			if(i == size_of_frames-1){
+			if(i == num_of_frames-1){
 				ft_e.next = 0;
 			}else{
 				ft_e.next = i+1;
@@ -184,7 +184,7 @@ void init_frametable(){
 		
 		//Remove the frames used for frame table from free list
 		unsigned int frame_loc = location >> 12;
-		for(unsigned int i = size_of_frames-1; i>= frame_loc; i--){
+		for(unsigned int i = num_of_frames-1; i>= frame_loc; i--){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
 			frameTable[i].used = true;					
