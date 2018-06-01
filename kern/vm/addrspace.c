@@ -223,58 +223,56 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
-        /*
-         * Write this.
-         */
+    /*
+     * Write this.
+     */
 
-		//Add************************************
-		memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
-		vaddr &= PAGE_FRAME;
+	//Add************************************
+	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
 
-		memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
+	memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
 
-		size_t num_of_pages = memsize / PAGE_SIZE;
+	size_t num_of_pages = memsize / PAGE_SIZE;
 
+	struct region * new_region 
+			= region_create(vaddr, num_of_pages, readable, writeable, executable);
+	if (new_region == NULL) {
+    	return ENOMEM;
+	}
 
-		struct region *reg = kmalloc(sizeof(struct region));
-   		if (reg == NULL) {
-        	return ENOMEM;
+	as_add_region(as, new_region);
+
+    //(void)as;
+    //(void)vaddr;
+    //(void)memsize;
+    (void)readable;
+    //(void)writeable;
+    (void)executable;
+    //return ENOSYS; /* Unimplemented */
+	return 0;
+	//***************************************
+}
+
+int as_add_region(struct addrspace *as, struct region *new_region)
+{
+	struct region* prev;
+	struct region* curr; 
+
+	if(as->regionList != NULL){
+		curr = as->regionList;
+		prev = curr;
+
+    	while (curr != NULL && (curr->vir_base < new_region->vir_base)) {
+        	prev = curr;
+        	curr = curr->next;
     	}
+    	prev->next = new_region;
+    	new_region->next = curr;
 
-		reg->next = NULL;
-		reg->vir_base = vaddr;
-		reg->writeable = writeable;
-		reg->prev_writeable = reg->writeable;
-		reg->num_of_pages = num_of_pages;
-		
-
-		struct region* prev;
-		struct region* curr; 
-
-		if(as->regionList != NULL){
-			curr = as->regionList;
-			prev = curr;
-
-        	while (curr != NULL && (curr->vir_base < reg->vir_base)) {
-            	prev = curr;
-            	curr = curr->next;
-        	}
-        	prev->next = reg;
-        	reg->next = curr;
-
-		}else{
-			as->regionList = reg;
-		}
-
-        //(void)as;
-        //(void)vaddr;
-        //(void)memsize;
-        (void)readable;
-        //(void)writeable;
-        (void)executable;
-        //return ENOSYS; /* Unimplemented */
-		return 0;
-		//***************************************
+	}else{
+		as->regionList = new_region;
+	}
 }
 
 int
@@ -346,6 +344,26 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         *stackptr = USERSTACK;
 
         return 0;
+}
+
+struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
+                                   int writeable, int executable)
+{
+	struct region* new_region = kmalloc(sizeof(struct region));
+	
+	if (new_region == NULL) {
+    	return 0;
+	}
+	
+	new_region->vir_base = vaddr;
+	new_region->num_of_pages = num_of_pages;
+	new_region->readable = readable;
+	new_region->writeable = writeable;
+	new_region->executable = executable;
+	new_region->prev_writeable = new_region->writeable;
+	new_region->next = NULL;
+
+	return new_region;
 }
 
 void region_destroy(struct addrspace* as, struct region* region)

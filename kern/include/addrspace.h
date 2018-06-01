@@ -78,6 +78,9 @@ struct addrspace {
 #endif
 };
 
+struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
+                                   int writeable, int executable);
+
 void region_destroy(struct addrspace* as, struct region* region);
 
 /*
