@@ -36,8 +36,20 @@
  * You'll probably want to add stuff here.
  */
 
-
 #include <machine/vm.h>
+
+struct hpt_entry{
+	struct addrspace * pid;
+	uint32_t VPN;
+	uint32_t PFN; 
+	struct hpt_entry * next;
+};
+
+struct hpt_entry ** hash_page_table;
+
+int hpt_size;
+
+#define PAGE_BITS  12
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
@@ -47,7 +59,26 @@
 
 /* Initialization function */
 void vm_bootstrap(void);
+
+// Initial frametable
 void init_frametable(void);
+
+// Initial hpt, the bump allocator will be used
+void init_hpt(void);
+
+// Insert into one free slot of hpt
+struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
+									int n_bit, int d_bit, int v_bit);
+
+int hpt_delete(struct addrspace * as, vaddr_t VPN);
+
+struct hpt_entry * hpt_lookup(struct addrspace * as, vaddr_t VPN); 
+
+// Hash function for hpt
+// The following hash function will combine the address of the struct addrspace 
+// and faultaddr address to reduce hash collisions between processes 
+// (processes using similar address ranges).
+uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr);
 
 /* Fault handling function called by trap code */
 int vm_fault(int faulttype, vaddr_t faultaddress);

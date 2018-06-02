@@ -51,110 +51,75 @@
 struct addrspace *
 as_create(void)
 {
-        struct addrspace *as;
+    struct addrspace *as;
 
-        as = kmalloc(sizeof(struct addrspace));
-        if (as == NULL) {
-                return NULL;
-        }
+    as = kmalloc(sizeof(struct addrspace));
+    if (as == NULL) {
+            return NULL;
+    }
 
-        /*
-         * Initialize as needed.
-         */
+    /*
+     * Initialize as needed.
+     */
 
-		//Add*****************************
-		as->pageTable = (paddr_t**)alloc_kpages(1);
-		if(as->pageTable == NULL){
-			kfree(as);
-			return NULL;		
-		}
+	as->regionList = NULL;		
 
-		for(int i = 0; i < SIZE_OF_PAGETABLE; i++){
-			as->pageTable[i] = NULL;
-		}
-
-		as->regionList = NULL;		
-		//********************************
-
-        return as;
+    return as;
 }
 
 int
 as_copy(struct addrspace *old, struct addrspace **ret)
 {
-        struct addrspace *new_addr;
+    struct addrspace *new_addr;
 
-        new_addr = as_create();
-        if (new_addr==NULL) {
-                return ENOMEM;
-        }
+    new_addr = as_create();
+    if (new_addr==NULL) 
+    {
+            return ENOMEM;
+    }
 
-        //Add*****************
-        struct region* old_region = old->regionList;
-		struct region* new_region = new_addr->regionList;
+    //Add*****************
+    struct region* old_region = old->regionList;
+	struct region* new_region = new_addr->regionList;		
 
-		while(old_region != NULL){
-			struct region* reg = kmalloc(sizeof(struct region));
-			if(reg == NULL){
-				//as_destroy();
-				return ENOMEM;			
-			}else{
-				reg->next = NULL;
-				reg->vir_base = old_region -> vir_base;				
-				reg->w_bit = old_region->w_bit;
-				reg->prev_w_bit = old_region->prev_w_bit;
-				reg->size_of_pages = old_region->size_of_pages;
-
-				if(new_region == NULL){
-					new_addr->regionList = reg;
-				}else{
-					new_region->next = reg;
-				} 
-				new_region = reg;
-				old_region = old_region->next;
-			}
-
-			
+	while(old_region != NULL)
+	{
+		struct region* reg = region_copy(new_addr, old, old_region);
+		if(reg == NULL)
+		{
+			//as_destroy();
+			return ENOMEM;			
 		}
 
-		for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
-			if(old->pageTable == NULL){
-				continue;
-			}
-			new_addr->pageTable[i] = kmalloc(sizeof(paddr_t) * SIZE_OF_PAGETABLE);
-			for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
-
-				if(old->pageTable[i][j] == 0){
-					new_addr->pageTable[i][j] = 0;				
-				}else{
-					vaddr_t frame_addr_new = alloc_kpages(1);
-					//vaddr_t frame_addr_old = PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME)
-					memmove((void*)frame_addr_new, (const void *)PADDR_TO_KVADDR(old->pageTable[i][j] & PAGE_FRAME), PAGE_SIZE);
-					//dirty = 
-					new_addr->pageTable[i][j] = (PAGE_FRAME & KVADDR_TO_PADDR(frame_addr_new)) | TLBLO_VALID | (old->pageTable[i][j] & TLBLO_DIRTY);
-				}
-				
-			}
+		// If reg is the first region 
+		if(new_addr->regionList==NULL)
+		{
+			new_addr->regionList = reg;
+			new_region = reg;
+		}
+		else
+		{
+			new_region->next = reg;
+			new_region = reg;
 		}
 
+		old_region = old_region->next;
+	}
 
-        //*******************
+    //*******************
 
-        //(void)old;
-
-        *ret = new_addr;
-        return 0;
+    *ret = new_addr;
+    return 0;
 }
 
 void
 as_destroy(struct addrspace *as)
 {
-	//Add************************
 	/*
     * Clean up as needed.
     */
 
-	//Free the regions
+	//Free all regions with their hpt_entrys and physical memory
 	struct region* prev;
 	struct region* cur;
 	cur = as->regionList;
@@ -162,75 +127,59 @@ as_destroy(struct addrspace *as)
 		
 	while(cur != NULL){
 		cur = cur->next;
-		kfree(prev);
+		region_destroy(as, prev);
 		prev = cur;
 	}
 
 	if(prev!=NULL){
-		kfree(prev);
-	}
-
-	//Free the pagetables
-	for(int i = 0; i < SIZE_OF_PAGETABLE;i++){
-		if(as->pageTable[i] == NULL){
-			continue;
-		}
-		for(int j = 0; j < SIZE_OF_PAGETABLE; j++){
-			if(as->pageTable[i][j] != 0){
-				free_kpages(PADDR_TO_KVADDR(as->pageTable[i][j] & PAGE_FRAME));			
-			}
-		}
-		kfree(as->pageTable[i]);
+		region_destroy(as, prev);
 	}
 
     kfree(as);
-	//****************************
 }
 
 void
 as_activate(void)
 {
-        struct addrspace *as;
+    struct addrspace *as;
 
-        as = proc_getas();
-        if (as == NULL) {
-                /*
-                 * Kernel thread without an address space; leave the
-                 * prior address space in place.
-                 */
-                return;
-        }
+    as = proc_getas();
+    if (as == NULL) {
+            /*
+             * Kernel thread without an address space; leave the
+             * prior address space in place.
+             */
+            return;
+    }
 
-        /*
-         * Write this.
-         */
-		//Add*********************************
-		int s = splhigh();
-		
-		//flush the TLB		
-		for(int i = 0; i < NUM_TLB; i++){
-			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);		
-		}
+    /*
+     * Write this.
+     */
+	//Add*********************************
+	int s = splhigh();
+	
+	//flush the TLB		
+	for(int i = 0; i < NUM_TLB; i++){
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);		
+	}
 
-		splx(s);
-		//************************************
+	splx(s);
+	//************************************
 
 }
 
 void
 as_deactivate(void)
 {
-        /*
-         * Write this. For many designs it won't need to actually do
-         * anything. See proc.c for an explanation of why it (might)
-         * be needed.
-         */
+    /*
+     * Write this. For many designs it won't need to actually do
+     * anything. See proc.c for an explanation of why it (might)
+     * be needed.
+     */
 
-		//Add*********************************
-		as_activate();
-		//************************************
-
-
+	//Add*********************************
+	as_activate();
+	//************************************
 }
 
 /*
@@ -247,128 +196,209 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
-        /*
-         * Write this.
-         */
+    /*
+     * Write this.
+     */
 
-		//Add************************************
-		memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
-		vaddr &= PAGE_FRAME;
+	//Add************************************
+	kprintf("memsize:0x%x\n", memsize);
+	kprintf("vaddr:0x%x\n", vaddr);
+	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
 
-		memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
+	memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
 
-		size_t size_of_pages = memsize / PAGE_SIZE;
+	size_t num_of_pages = memsize / PAGE_SIZE;
 
+	struct region * new_region 
+			= region_create(vaddr, num_of_pages, readable, writeable, executable);
+	if (new_region == NULL) {
+    	return ENOMEM;
+	}
 
-		struct region *reg = kmalloc(sizeof(struct region));
-   		if (reg == NULL) {
-        	return ENOMEM;
+	as_add_region(as, new_region);
+
+	kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
+
+	return 0;
+	//***************************************
+}
+
+void as_add_region(struct addrspace *as, struct region *new_region)
+{
+	struct region* prev;
+	struct region* curr; 
+
+	if(as->regionList != NULL){
+		curr = as->regionList;
+		prev = curr;
+
+    	while (curr != NULL && (curr->vir_base < new_region->vir_base)) {
+        	prev = curr;
+        	curr = curr->next;
     	}
+    	prev->next = new_region;
+    	new_region->next = curr;
 
-		reg->next = NULL;
-		reg->vir_base = vaddr;
-		reg->w_bit = writeable;
-		reg->prev_w_bit = reg->w_bit;
-		reg->size_of_pages = size_of_pages;
-		
-
-		struct region* prev;
-		struct region* curr; 
-
-		if(as->regionList != NULL){
-			curr = as->regionList;
-			prev = curr;
-
-        	while (curr != NULL && (curr->vir_base < reg->vir_base)) {
-            	prev = curr;
-            	curr = curr->next;
-        	}
-        	prev->next = reg;
-        	reg->next = curr;
-
-		}else{
-			as->regionList = reg;
-		}
-
-        //(void)as;
-        //(void)vaddr;
-        //(void)memsize;
-        (void)readable;
-        //(void)writeable;
-        (void)executable;
-        //return ENOSYS; /* Unimplemented */
-		return 0;
-		//***************************************
+	}else{
+		as->regionList = new_region;
+	}
 }
 
 int
 as_prepare_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
-		//Add****************
-		struct region* curr = as->regionList;
-		while(curr != NULL){
-			curr->prev_w_bit = curr->w_bit;
-			curr->w_bit = 1;
-			curr = curr->next;
-		}
-		//******************
 
-        //(void)as;
-        return 0;
+    /*
+     * Write this.
+     */
+	//Add****************
+	struct region* curr = as->regionList;
+	while(curr != NULL){
+		curr->prev_writeable = curr->writeable;
+		curr->writeable = 1;
+		curr = curr->next;
+	}
+	//******************
+
+    //(void)as;
+    return 0;
 }
 
 int
 as_complete_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
+    /*
+     * Write this.
+     */
 
 
-		//Add*****************
-		struct region* curr = as->regionList;
-		while(curr != NULL){
-			curr->w_bit = curr->prev_w_bit;
-			curr = curr->next;
-		}
+	//Add*****************
+	struct region* curr = as->regionList;
+	while(curr != NULL){
+		curr->writeable = curr->prev_writeable;
+		curr = curr->next;
+	}
 
-        //(void)as;
+	int s = splhigh();
 
-		int s = splhigh();
+	//Flush the tlb
+	for (int i = 0; i< NUM_TLB; i++){
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+	}
+	
+	splx(s);
 
-		//Flush the tlb
-		for (int i = 0; i< NUM_TLB; i++){
-			tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
-		}
-		
-		splx(s);
-
-		//********************
-        return 0;
+	//********************
+    return 0;
 }
 
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        /*
-         * Write this.
-         */
-
-        //(void)as;
+    /*
+     * Write this.
+     */	
 	
-		//Add*********************
-		int res = as_define_region(as, USERSTACK - (12 * PAGE_SIZE), (12 * PAGE_SIZE), 1, 1, 1);
-		if(res){
-			return res;
-		}
-		//************************
+	int res = as_define_region(as, USERSTACK - (STACK_SIZE_IN_PAGE * PAGE_SIZE), 
+								(STACK_SIZE_IN_PAGE * PAGE_SIZE), 1, 1, 1);
+	
+	if(res){
+		return res;
+	}
 
-        /* Initial user-level stack pointer */
-        *stackptr = USERSTACK;
+    /* Initial user-level stack pointer */
+    *stackptr = USERSTACK;
 
-        return 0;
+    return 0;
 }
 
+struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
+                                   int writeable, int executable)
+{
+	struct region* new_region = kmalloc(sizeof(struct region));
+	
+	if (new_region == NULL) {
+    	return 0;
+	}
+	
+	new_region->vir_base = vaddr;
+	new_region->num_of_pages = num_of_pages;
+	new_region->readable = readable;
+	new_region->writeable = writeable;
+	new_region->executable = executable;
+	new_region->prev_writeable = new_region->writeable;
+	new_region->next = NULL;
+
+	return new_region;
+}
+
+void region_destroy(struct addrspace* as, struct region* region)
+{
+	if(region==NULL) return;
+    
+
+    for(unsigned int i=0; i<region->num_of_pages; ++i) {
+    	// Find VPN
+    	vaddr_t VPN = region->vir_base & PAGE_FRAME;
+    	VPN += i*PAGE_SIZE;
+    	
+    	// Find the coresponding hpt_entry
+        struct hpt_entry * curr_hpt_entry = hpt_lookup(as, VPN);
+
+        if(curr_hpt_entry != NULL) {
+            // Get PFN, get rid of N,D,V,G bits
+            paddr_t PFN = curr_hpt_entry->PFN & PAGE_FRAME;
+            
+            // free physical frame
+            kfree((void *)PADDR_TO_KVADDR(PFN));
+
+            // delete corresponding entry in hash_page_table
+            hpt_delete(as, VPN);
+        }
+    }
+
+    kfree(region);
+
+}
+
+struct region* region_copy(struct addrspace* new_as, 
+						struct addrspace* old, struct region* old_region)
+{
+	if(old_region==NULL) return NULL;
+
+	struct region* new_region 
+			= region_create(old_region->vir_base, 
+							old_region->num_of_pages, 
+							old_region->readable,
+                            old_region->writeable, 
+                            old_region->executable);
+
+	for(unsigned int i=0; i<old_region->num_of_pages; ++i)
+	{
+		struct hpt_entry* old_hpt_entry= hpt_lookup(old, old_region->vir_base+i*PAGE_SIZE);
+		
+		// No hpt_entry, this page not used yet
+		if (old_hpt_entry==NULL) continue;
+
+		// Get a frame in frameTable
+		vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+		KASSERT(VPN!=0);
+
+		// Convert to virtual address
+		paddr_t PFN = KVADDR_TO_PADDR(VPN);
+		PFN &= PAGE_FRAME;
+
+		// Get the physical address of old frame
+		paddr_t old_PFN = old_hpt_entry->PFN;
+		old_PFN &= PAGE_FRAME;
+
+		// Copy the contain of the frame
+		memmove((void*)PFN, (const void*)old_PFN, PAGE_SIZE);
+
+		// Create a new hpt_entry and insert into hpt
+		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
+	}
+
+	return new_region;
+}

@@ -40,6 +40,8 @@
 
 struct vnode;
 
+// From assignment spec
+#define STACK_SIZE_IN_PAGE 16
 
 /*
  * Address space - data structure associated with the virtual memory
@@ -50,16 +52,15 @@ struct vnode;
 
 //Add**********************
 struct region{
-	vaddr_t vir_base;
-	size_t size_of_pages;
-	uint32_t w_bit;
-	uint32_t prev_w_bit;
-	struct region* next;
-	
+    vaddr_t vir_base;
+    size_t num_of_pages;
+    int readable;
+    int writeable;
+    int executable;
+    int prev_writeable;
+    struct region* next;	
 };
 //*************************
-
-
 
 
 struct addrspace {
@@ -78,6 +79,16 @@ struct addrspace {
 		
 #endif
 };
+
+struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
+                                   int writeable, int executable);
+
+void region_destroy(struct addrspace* as, struct region* region);
+
+void as_add_region(struct addrspace *as, struct region *new_region);
+
+struct region* region_copy(struct addrspace* new_as, 
+                        struct addrspace* old, struct region* old_region);
 
 /*
  * Functions in addrspace.c:
