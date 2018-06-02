@@ -176,167 +176,86 @@ void vm_bootstrap(void)
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
-        (void) faulttype;
-        (void) faultaddress;
-		
-		// int f;
-		// int res;
-		// uint32_t dir_bit = 0; //Mark
-		// uint32_t low_entry;
-		// uint32_t high_entry;
+    // (void) faulttype;
+    // (void) faultaddress;
 
-
-        //panic("vm_fault hasn't been written yet\n");
-		switch(faulttype){
-			case VM_FAULT_READ:
-				break;
-			case VM_FAULT_WRITE:
-				break;
-			case VM_FAULT_READONLY:
-				return EFAULT;
-			default:
-				return EINVAL;
-		}
-
-		struct addrspace *curr_as = proc_getas();
-		//paddr_t** pt_pointer = curr_as->pageTable;
-
-		if(curr_as == NULL){
+    //panic("vm_fault hasn't been written yet\n");
+	switch(faulttype){
+		case VM_FAULT_READ:
+			break;
+		case VM_FAULT_WRITE:
+			break;
+		case VM_FAULT_READONLY:
 			return EFAULT;
-		}
+		default:
+			return EINVAL;
+	}
 
-		// Lookup hpt
-		vaddr_t old_VPN = faultaddress&PAGE_FRAME;
-		struct hpt_entry* old_hpt_entry = hpt_lookup(curr_as, old_VPN);
-		
-		// Load TLB
-		if(old_hpt_entry!=NULL)
-		{
-			int s = splhigh();
-			tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
-			splx(s);
-		}
+	struct addrspace *curr_as = proc_getas();
+	//paddr_t** pt_pointer = curr_as->pageTable;
 
-		// Lookup regions
-        struct region* curr = curr_as->regionList;
-        if(curr == NULL) 
-        {
-            return EFAULT;
-        }
+	if(curr_as == NULL){
+		return EFAULT;
+	}
 
-        while(curr != NULL) 
-        {
-            if (curr->vir_base + curr->num_of_pages*PAGE_SIZE) > faultaddress 
-            				&& (curr->vir_base <= faultaddress) 
-            {
-                break;
-            }
-            curr = curr->next;
-        }
-
-        // No valid region
-        if(curr==NULL)
-        {
-            return EFAULT;
-        }
-
-		// Get a frame in frameTable
-		vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
-		KASSERT(VPN!=0);
-
-		VPN &= TLBHI_VPAGE;
-
-		// Convert to virtual address
-		paddr_t PFN = KVADDR_TO_PADDR(VPN);
-		PFN &= TLBLO_PPAGE;
-
-		// Create a new hpt_entry and insert into hpt
-		hpt_insert(curr_as, VPN, PFN, 0, curr->writeable, 1);
-
-
-
-
-
-
-
-
-
-
-		uint32_t root_index = fault_paddr >> 22;		
-		uint32_t second_index = fault_paddr << 10 >> 22;
-
-		if(pt_pointer[root_index] == NULL){
-			//res = vm_add_root_ptentry(pt_pointer, root_index);
-			
-			//Initialize the entry for root page table;
-			pt_pointer[root_index] = kmalloc(sizeof(paddr_t)*SIZE_OF_PAGETABLE);
-			if(pt_pointer[root_index] == NULL){
-				return ENOMEM;
-			}			
-			for(int i = 0; i < SIZE_OF_PAGETABLE; i++){
-				pt_pointer[root_index][i] = 0;			
-			}
-
-			/*
-			if(res){
-				return res;
-			}*/
-			f = true;
-		}
-
-		if(pt_pointer[root_index][second_index] == 0){
-			struct region* curr = curr_as->regionList;
-			while(curr != NULL){
-				if((curr->vir_base + (curr->num_of_pages * PAGE_SIZE) > faultaddress) && (curr->vir_base <= faultaddress)){
-					if(curr->writeable == 0){
-						dir_bit = 0;
-					}else{
-						dir_bit = TLBLO_DIRTY;
-					}
-					break;
-				}
-				curr = curr->next;
-			}
-			if(curr == NULL){
-				if(f == true){
-					kfree(pt_pointer[root_index]);
-				}
-				return EFAULT;
-			}
-			
-			//result = vm_add_ptentery();
-
-			vaddr_t temp_alloc = alloc_kpages(1);
-			if(temp_alloc == 0){
-				if(f == true){
-					kfree(pt_pointer[root_index]);
-				}
-				return ENOMEM;
-			}else{
-				paddr_t temp_phy_alloc = KVADDR_TO_PADDR(temp_alloc);
-				pt_pointer[root_index][second_index] = (temp_phy_alloc & PAGE_FRAME) | dir_bit | TLBLO_VALID;
-			}
-			
-			
-
-			/*
-			if(res){
-				if(flag == true){
-					kfree(pagetable[root_index]);				
-				}
-				return result;
-			}*/
-			
-		}
-
-		low_entry = pt_pointer[root_index][second_index];
-		high_entry = faultaddress & PAGE_FRAME;	
-
+	// Lookup hpt
+	vaddr_t old_VPN = faultaddress&PAGE_FRAME;
+	struct hpt_entry* old_hpt_entry = hpt_lookup(curr_as, old_VPN);
+	
+	// Load TLB
+	if(old_hpt_entry!=NULL)
+	{
 		int s = splhigh();
-		tlb_random(high_entry, low_entry);
+		tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
 		splx(s);
-		return 0;
-        
+	}
+
+	// Lookup regions
+    struct region* curr = curr_as->regionList;
+    if(curr == NULL) 
+    {
+        return EFAULT;
+    }
+
+    while(curr != NULL) 
+    {
+        if ((curr->vir_base + curr->num_of_pages*PAGE_SIZE) > faultaddress 
+        				&& curr->vir_base <= faultaddress) 
+        {
+            break;
+        }
+        curr = curr->next;
+    }
+
+    // No valid region
+    if(curr==NULL)
+    {
+        return EFAULT;
+    }
+
+	// Get a frame in frameTable
+	vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+	KASSERT(VPN!=0);
+
+	VPN &= TLBHI_VPAGE;
+
+	// Convert to virtual address
+	paddr_t PFN = KVADDR_TO_PADDR(VPN);
+	PFN &= TLBLO_PPAGE;
+
+	// Create a new hpt_entry and insert into hpt
+	struct hpt_entry* new_hpt_entry = 
+					hpt_insert(curr_as, VPN, PFN, 0, curr->writeable, 1);
+
+	if(new_hpt_entry == NULL){
+		return ENOMEM;
+	}
+
+	int t = splhigh();
+	tlb_random(new_hpt_entry->VPN, new_hpt_entry->PFN);
+	splx(t);
+	
+	return 0;       
 }
 
 /*
