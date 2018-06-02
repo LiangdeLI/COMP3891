@@ -113,7 +113,6 @@ int hpt_delete(struct addrspace * as, vaddr_t VPN)
 	{
 		hash_page_table[index]=curr->next;
 		kfree(curr);
-		KASSERT(curr==NULL);
 		spinlock_release(&hpt_lock);
 		return 0;
 	}
@@ -126,7 +125,6 @@ int hpt_delete(struct addrspace * as, vaddr_t VPN)
 		{
 			prev->next=curr->next;
 			kfree(curr);
-			KASSERT(curr==NULL);
 			spinlock_release(&hpt_lock);
 			return 0;
 		}
@@ -233,12 +231,19 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return EFAULT;
     }
 
+    if (faulttype==VM_FAULT_READ && !curr->readable) {
+        return EFAULT;
+    }
+
+    if (faulttype==VM_FAULT_WRITE && !curr->writeable) {
+        return EFAULT;
+    }
+
 	// Get a frame in frameTable
 	vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
     if(VPN == 0) {
         return ENOMEM;
     }
-	//KASSERT(VPN!=0);
 
 	VPN &= TLBHI_VPAGE;
 

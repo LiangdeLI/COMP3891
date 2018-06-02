@@ -128,17 +128,14 @@ as_destroy(struct addrspace *as)
 	while(cur != NULL){
 		cur = cur->next;
 		region_destroy(as, prev);
-		KASSERT(prev==NULL);
 		prev = cur;
 	}
 
 	if(prev!=NULL){
 		region_destroy(as, prev);
-		KASSERT(prev==NULL);
 	}
 
     kfree(as);
-    KASSERT(as==NULL);
 }
 
 void
@@ -204,6 +201,8 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
      */
 
 	//Add************************************
+	kprintf("memsize:0x%x\n", memsize);
+	kprintf("vaddr:0x%x\n", vaddr);
 	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
 	vaddr &= PAGE_FRAME;
 
@@ -218,6 +217,8 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 	}
 
 	as_add_region(as, new_region);
+
+	kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
 
 	return 0;
 	//***************************************
@@ -357,7 +358,7 @@ void region_destroy(struct addrspace* as, struct region* region)
     }
 
     kfree(region);
-    KASSERT(region==NULL);
+
 }
 
 struct region* region_copy(struct addrspace* new_as, 
