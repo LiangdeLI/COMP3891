@@ -235,7 +235,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	// Get a frame in frameTable
 	vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
-	KASSERT(VPN!=0);
+    if(VPN == 0) {
+        return ENOMEM;
+    }
+	//KASSERT(VPN!=0);
 
 	VPN &= TLBHI_VPAGE;
 

@@ -26,6 +26,8 @@ struct ft_entry* frameTable = NULL;
 
 static int first_free_index;
 
+static int top_of_bump_allocated;
+
 static struct spinlock frameTable_lock = SPINLOCK_INITIALIZER;
 
 //***********************************
@@ -106,7 +108,7 @@ void free_kpages(vaddr_t addr)
 		paddr_t paddr = KVADDR_TO_PADDR(addr);
 		
 		int i = paddr >> 12;
-		
+		if(i<=top_of_bump_allocated) return;
 
 		spinlock_acquire(&frameTable_lock);
 
@@ -176,7 +178,8 @@ void init_frametable(){
 			
 			first_free_index = i;		
 		}
-		
+		first_free_index++;
+		top_of_bump_allocated = first_free_index-1;
 		
 		//Remove the frames used for frame table from free list
 		unsigned int frame_loc = location >> 12;
@@ -185,6 +188,8 @@ void init_frametable(){
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
 			frameTable[i].used = true;					
 		}
+
+		kprintf("first_free_index is : 0x%x\n", first_free_index);
 
 }
 //**************************
