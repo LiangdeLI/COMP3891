@@ -218,7 +218,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	as_add_region(as, new_region);
 
-	//kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
+	kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
 
 	return 0;
 	//***************************************
@@ -229,18 +229,30 @@ void as_add_region(struct addrspace *as, struct region *new_region)
 	struct region* prev;
 	struct region* curr; 
 
-	if(as->regionList != NULL){
+	if(as->regionList != NULL)
+	{
 		curr = as->regionList;
 		prev = curr;
 
-    	while (curr != NULL && (curr->vir_base < new_region->vir_base)) {
+    	while (curr != NULL && (curr->vir_base < new_region->vir_base)) 
+    	{
         	prev = curr;
         	curr = curr->next;
     	}
-    	prev->next = new_region;
-    	new_region->next = curr;
-
-	}else{
+    	
+    	if(curr==as->regionList)
+    	{
+    		new_region->next = curr;
+    		as->regionList=new_region;
+    	}
+    	else
+    	{
+	    	prev->next = new_region;
+	    	new_region->next = curr;
+	    }
+	}
+	else
+	{
 		as->regionList = new_region;
 	}
 }
