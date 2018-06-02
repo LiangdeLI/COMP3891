@@ -218,7 +218,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	as_add_region(as, new_region);
 
-	kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
+	//kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
 
 	return 0;
 	//***************************************

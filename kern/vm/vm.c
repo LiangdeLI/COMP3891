@@ -207,6 +207,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		int s = splhigh();
 		tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
 		splx(s);
+		return 0;
 	}
 
 	// Lookup regions
@@ -232,13 +233,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return EFAULT;
     }
 
-    if (faulttype==VM_FAULT_READ && !curr->readable) {
-        return EFAULT;
-    }
+    // if (faulttype==VM_FAULT_READ && !curr->readable) {
+    //     return EFAULT;
+    // }
 
-    if (faulttype==VM_FAULT_WRITE && !curr->writeable) {
-        return EFAULT;
-    }
+    // if (faulttype==VM_FAULT_WRITE && !curr->writeable) {
+    //     return EFAULT;
+    // }
 
 	// Get a frame in frameTable
 	vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
@@ -246,7 +247,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return ENOMEM;
     }
 
-	VPN &= TLBHI_VPAGE;
+	//VPN &= TLBHI_VPAGE;
 
 	// Convert to physical address
 	paddr_t PFN = KVADDR_TO_PADDR(VPN);

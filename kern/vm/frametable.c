@@ -189,7 +189,7 @@ void init_frametable(){
 			frameTable[i].used = true;					
 		}
 
-		kprintf("first_free_index is : 0x%x\n", first_free_index);
+		//kprintf("first_free_index is : 0x%x\n", first_free_index);
 
 }
 //**************************
