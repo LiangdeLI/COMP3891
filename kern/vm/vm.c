@@ -242,13 +242,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	VPN &= TLBHI_VPAGE;
 
-	// Convert to virtual address
+	// Convert to physical address
 	paddr_t PFN = KVADDR_TO_PADDR(VPN);
 	PFN &= TLBLO_PPAGE;
 
 	// Create a new hpt_entry and insert into hpt
 	struct hpt_entry* new_hpt_entry = 
-					hpt_insert(curr_as, VPN, PFN, 0, curr->writeable, 1);
+					hpt_insert(curr_as, old_VPN, PFN, 0, curr->writeable, 1);
 
 	if(new_hpt_entry == NULL){
 		return ENOMEM;
