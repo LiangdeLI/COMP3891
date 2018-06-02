@@ -310,7 +310,7 @@ as_prepare_load(struct addrspace *as)
 		//Add****************
 		struct region* curr = as->regionList;
 		while(curr != NULL){
-			curr->prev_w_bit = curr->w_bit
+			curr->prev_w_bit = curr->w_bit;
 			curr->w_bit = 1;
 			curr = curr->next;
 		}
