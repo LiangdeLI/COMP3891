@@ -52,13 +52,13 @@ uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr)
 struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
 									int n_bit, int d_bit, int v_bit)
 {
-    if(n_bit == 1) {
+    if(n_bit > 0) {
         PFN = PFN | TLBLO_NOCACHE; 
     }
-    if(d_bit == 1) {
+    if(d_bit > 0) {
         PFN = PFN | TLBLO_DIRTY;
     }
-    if(v_bit == 1) {
+    if(v_bit > 0) {
         PFN = PFN | TLBLO_VALID;
     }
 	
@@ -76,6 +76,7 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 		new_hpt_entry->VPN = VPN;
 		new_hpt_entry->PFN = PFN;
 		new_hpt_entry->next = NULL;
+		hash_page_table[index] = new_hpt_entry;
 		spinlock_release(&hpt_lock);
 		return new_hpt_entry;
 	}
@@ -217,8 +218,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
     while(curr != NULL) 
     {
-        if ((curr->vir_base + curr->num_of_pages*PAGE_SIZE) > faultaddress 
-        				&& curr->vir_base <= faultaddress) 
+        if (((curr->vir_base + curr->num_of_pages*PAGE_SIZE) > faultaddress) 
+        				&& (curr->vir_base <= faultaddress)) 
         {
             break;
         }

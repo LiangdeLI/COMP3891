@@ -201,8 +201,8 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
      */
 
 	//Add************************************
-	kprintf("memsize:0x%x\n", memsize);
-	kprintf("vaddr:0x%x\n", vaddr);
+	//kprintf("memsize:0x%x\n", memsize);
+	//kprintf("vaddr:0x%x\n", vaddr);
 	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
 	vaddr &= PAGE_FRAME;
 
@@ -218,7 +218,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	as_add_region(as, new_region);
 
-	kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
+	//kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
 
 	return 0;
 	//***************************************
@@ -255,8 +255,11 @@ as_prepare_load(struct addrspace *as)
 	//Add****************
 	struct region* curr = as->regionList;
 	while(curr != NULL){
-		curr->prev_writeable = curr->writeable;
-		curr->writeable = 1;
+		if(curr->writeable==0)
+		{
+			curr->need_recover = true;
+			curr->writeable = 1;
+		}
 		curr = curr->next;
 	}
 	//******************
@@ -276,7 +279,11 @@ as_complete_load(struct addrspace *as)
 	//Add*****************
 	struct region* curr = as->regionList;
 	while(curr != NULL){
-		curr->writeable = curr->prev_writeable;
+		if(curr->need_recover)
+		{
+			curr->writeable = 0;
+			curr->need_recover=false;
+		}
 		curr = curr->next;
 	}
 
@@ -327,7 +334,7 @@ struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
 	new_region->readable = readable;
 	new_region->writeable = writeable;
 	new_region->executable = executable;
-	new_region->prev_writeable = new_region->writeable;
+	new_region->need_recover = false;
 	new_region->next = NULL;
 
 	return new_region;
@@ -398,6 +405,8 @@ struct region* region_copy(struct addrspace* new_as,
 
 		// Create a new hpt_entry and insert into hpt
 		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
+
+		//kprintf("as:0x%x add page 0x%x at physical 0x%x \n", (unsigned int)new_as, old_hpt_entry->VPN, PFN);
 	}
 
 	return new_region;

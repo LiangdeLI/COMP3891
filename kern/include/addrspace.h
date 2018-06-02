@@ -57,7 +57,7 @@ struct region{
     int readable;
     int writeable;
     int executable;
-    int prev_writeable;
+    bool need_recover;
     struct region* next;	
 };
 //*************************
