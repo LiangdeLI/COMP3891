@@ -25,7 +25,7 @@ void init_hpt(void)
 	
 	// Using externel chain, don't need allocate two times of slots
 	hpt_size = num_of_frames;
-	// kprintf("hpt_size is %d\n",hpt_size);
+
 	// Bump allocator will be used
 	hash_page_table = (struct hpt_entry**) kmalloc(sizeof(struct hpt_entry*)*hpt_size);
 	KASSERT(hash_page_table!=NULL);
@@ -39,12 +39,13 @@ void init_hpt(void)
 
 uint32_t hpt_hash(struct addrspace *as, vaddr_t faultaddr)
 {
-        uint32_t index;
+    uint32_t index;
 
-        index = (((uint32_t )as) ^ (faultaddr >> PAGE_BITS)) % hpt_size;
-        return index;
+    index = (((uint32_t )as) ^ (faultaddr >> PAGE_BITS)) % hpt_size;
+    return index;
 }
 
+// Insert into [index] linked list
 struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
 									int n_bit, int d_bit, int v_bit)
 {
@@ -60,10 +61,12 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 	
     uint32_t index = hpt_hash(as, VPN);
 
+    // Get the head of [index] linked list
 	struct hpt_entry * new_hpt_entry = hash_page_table[index];
 
 	spinlock_acquire(&hpt_lock);
 
+	// No element in hash_page_table[index] 
 	if(new_hpt_entry==NULL)
 	{
 		new_hpt_entry = kmalloc(sizeof(struct hpt_entry));
@@ -93,6 +96,7 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 	tail_hpt_entry->next = new_hpt_entry;
 	
 	spinlock_release(&hpt_lock);
+	
 	return new_hpt_entry;
 }
 
@@ -106,6 +110,7 @@ int hpt_delete(struct addrspace * as, vaddr_t VPN)
 
 	spinlock_acquire(&hpt_lock);
 
+	// if the to be deleted one is the head
 	if(curr->pid==as && curr->VPN==VPN)
 	{
 		hash_page_table[index]=curr->next;
@@ -129,6 +134,7 @@ int hpt_delete(struct addrspace * as, vaddr_t VPN)
 	return 0;
 }
 
+// Find if there is a hpt_entry based on as and VPN
 struct hpt_entry * hpt_lookup(struct addrspace * as, vaddr_t VPN) 
 {
     uint32_t index = hpt_hash(as, VPN);
@@ -160,21 +166,17 @@ void vm_bootstrap(void)
            frame table here as well.
         */
 		
-		//Add*******************************************************
+
 		// init hpt first, so will use bump allocator
 		init_hpt();
+
 		init_frametable();
-		//*******************************************************
 
 }
 
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
-    // (void) faulttype;
-    // (void) faultaddress;
-
-    //panic("vm_fault hasn't been written yet\n");
 	switch(faulttype){
 		case VM_FAULT_READ:
 			break;
@@ -188,7 +190,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	struct addrspace *curr_as = proc_getas();
 
-
 	if(curr_as == NULL){
 		return EFAULT;
 	}
@@ -197,7 +198,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	vaddr_t old_VPN = faultaddress&PAGE_FRAME;
 	struct hpt_entry* old_hpt_entry = hpt_lookup(curr_as, old_VPN);
 	
-	// Load TLB
+	// Load TLB if valid
 	if(old_hpt_entry!=NULL)
 	{
 		int s = splhigh();
@@ -229,21 +230,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return EFAULT;
     }
 
-    // if (faulttype==VM_FAULT_READ && !curr->readable) {
-    //     return EFAULT;
-    // }
-
-    // if (faulttype==VM_FAULT_WRITE && !curr->writeable) {
-    //     return EFAULT;
-    // }
-
 	// Get a frame in frameTable
 	vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
     if(VPN == 0) {
         return ENOMEM;
     }
 
-	//VPN &= TLBHI_VPAGE;
+	VPN &= TLBHI_VPAGE;
 
 	// Convert to physical address
 	paddr_t PFN = KVADDR_TO_PADDR(VPN);
@@ -257,6 +250,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return ENOMEM;
 	}
 
+	// load TLB
 	int t = splhigh();
 	tlb_random(new_hpt_entry->VPN, new_hpt_entry->PFN);
 	splx(t);

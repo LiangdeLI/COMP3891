@@ -74,19 +74,25 @@ struct addrspace {
         paddr_t as_stackpbase;
 #else
 		/* Put stuff here for your VM system */
-
+        // A linked list of all defined regions
 		struct region* regionList;    
 		
 #endif
 };
 
+// Create a new region with the args passed in
 struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
                                    int writeable, int executable);
 
+// Delete a certain region in addrspace, delete hpt_entry, free the frame
 void region_destroy(struct addrspace* as, struct region* region);
 
+// Add a new created region to addrspace, called by as_define_region
 int as_add_region(struct addrspace *as, struct region *new_region);
 
+// Copy a old region in old as, to new as
+// Allocate a new frame in global frameTable
+// Create a new hpt_entry and insert into hash_page_table
 struct region* region_copy(struct addrspace* new_as, 
                         struct addrspace* old, struct region* old_region);
 

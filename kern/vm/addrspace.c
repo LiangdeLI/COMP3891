@@ -72,6 +72,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 {
     struct addrspace *new_addr;
 
+    // create new as
     new_addr = as_create();
     if (new_addr==NULL) 
     {
@@ -84,6 +85,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 
 	while(old_region != NULL)
 	{
+		// copy each region
 		struct region* reg = region_copy(new_addr, old, old_region);
 		if(reg == NULL)
 		{
@@ -155,7 +157,7 @@ as_activate(void)
     /*
      * Write this.
      */
-	//Add*********************************
+
 	int s = splhigh();
 	
 	//flush the TLB		
@@ -164,7 +166,7 @@ as_activate(void)
 	}
 
 	splx(s);
-	//************************************
+
 
 }
 
@@ -177,9 +179,9 @@ as_deactivate(void)
      * be needed.
      */
 
-	//Add*********************************
+
 	as_activate();
-	//************************************
+
 }
 
 /*
@@ -199,11 +201,11 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
     /*
      * Write this.
      */
-
-	//Add************************************
-	//kprintf("memsize:0x%x\n", memsize);
-	//kprintf("vaddr:0x%x\n", vaddr);
+	
+	// Increment memsize with space for vaddr not align with pages
 	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+	
+	// Align vaddr
 	vaddr &= PAGE_FRAME;
 
 	memsize = (memsize + PAGE_SIZE -1) & PAGE_FRAME;
@@ -212,6 +214,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	struct region * new_region 
 			= region_create(vaddr, num_of_pages, readable, writeable, executable);
+	
 	if (new_region == NULL) {
     	return ENOMEM;
 	}
@@ -220,12 +223,10 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
 	if(result) return result;
 
-	//kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
-
 	return 0;
-	//***************************************
 }
 
+// Add a new created region to addrspace, called by as_define_region
 int as_add_region(struct addrspace *as, struct region *new_region)
 {
 	struct region* prev;
@@ -274,19 +275,18 @@ as_prepare_load(struct addrspace *as)
     /*
      * Write this.
      */
-	//Add****************
+
 	struct region* curr = as->regionList;
 	while(curr != NULL){
 		if(curr->writeable==0)
 		{
+			// Turn read only region to writeable to load
 			curr->need_recover = true;
 			curr->writeable = 1;
 		}
 		curr = curr->next;
 	}
-	//******************
 
-    //(void)as;
     return 0;
 }
 
@@ -297,8 +297,6 @@ as_complete_load(struct addrspace *as)
      * Write this.
      */
 
-
-	//Add*****************
 	struct region* curr = as->regionList;
 	while(curr != NULL){
 		if(curr->need_recover)
@@ -329,7 +327,6 @@ as_complete_load(struct addrspace *as)
 	
 	splx(s);
 
-	//********************
     return 0;
 }
 
@@ -353,6 +350,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
     return 0;
 }
 
+// Create a new region with the args passed in
 struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
                                    int writeable, int executable)
 {
@@ -373,6 +371,7 @@ struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
 	return new_region;
 }
 
+// Delete a certain region in addrspace, delete hpt_entry, free the frame
 void region_destroy(struct addrspace* as, struct region* region)
 {
 	if(region==NULL) return;
@@ -402,6 +401,9 @@ void region_destroy(struct addrspace* as, struct region* region)
 
 }
 
+// Copy a old region in old as, to new as
+// Allocate a new frame in global frameTable
+// Create a new hpt_entry and insert into hash_page_table
 struct region* region_copy(struct addrspace* new_as, 
 						struct addrspace* old, struct region* old_region)
 {
@@ -439,7 +441,6 @@ struct region* region_copy(struct addrspace* new_as,
 		// Create a new hpt_entry and insert into hpt
 		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
 
-		//kprintf("as:0x%x add page 0x%x at physical 0x%x \n", (unsigned int)new_as, old_hpt_entry->VPN, PFN);
 	}
 
 	return new_region;

@@ -12,7 +12,6 @@
  */
 
 
-//Add***********************************
 //The struct of frame table entry
 struct ft_entry{
 	int prev;
@@ -24,14 +23,12 @@ struct ft_entry{
 //Frame table
 struct ft_entry* frameTable = NULL;  
 
+// Index of first free slot in frameTable
 static int first_free_index;
 
 static int top_of_bump_allocated;
 
 static struct spinlock frameTable_lock = SPINLOCK_INITIALIZER;
-
-//***********************************
-
 
 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
@@ -49,9 +46,7 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 vaddr_t alloc_kpages(unsigned int npages)
 {
-        //***************
-		
-		//******
+
 		paddr_t addr = 0; //Initialization to 0
 		spinlock_acquire(&frameTable_lock);     
 		
@@ -68,11 +63,9 @@ vaddr_t alloc_kpages(unsigned int npages)
 			
 			addr = first_free_index << 12;
 			
-			//
 			frameTable[frameTable[first_free_index].next].prev = frameTable[first_free_index].prev;
 			frameTable[frameTable[first_free_index].prev].next = frameTable[first_free_index].next;
 			frameTable[first_free_index].used = true;
-			//
 
 			//Check if it is the last free frame
 			if(frameTable[first_free_index].next == first_free_index){
@@ -88,13 +81,11 @@ vaddr_t alloc_kpages(unsigned int npages)
 		}
 
 		spinlock_release(&frameTable_lock);
-		//******
-
 
         if(addr == 0)
-                return 0;
-		
+                return 0;		
 
+        // zero-fill
 		bzero((void*)PADDR_TO_KVADDR(addr),PAGE_SIZE);
 
         return PADDR_TO_KVADDR(addr);
@@ -102,12 +93,13 @@ vaddr_t alloc_kpages(unsigned int npages)
 
 void free_kpages(vaddr_t addr)
 {
-        //(void) addr;
-		//Add**********
 		
 		paddr_t paddr = KVADDR_TO_PADDR(addr);
 		
+		// Get index in frameTable
 		int i = paddr >> 12;
+
+		// Protect kernel and hpt
 		if(i<=top_of_bump_allocated) return;
 
 		spinlock_acquire(&frameTable_lock);
@@ -129,17 +121,16 @@ void free_kpages(vaddr_t addr)
 		}else{
 			spinlock_release(&frameTable_lock);
 		}
-		//*************
+
 }
 
-//Add***********************
 //Frametable initialization
 void init_frametable(){
 
 		//paddr_t top_of_ram = ram_getsize();
 		paddr_t top_of_ram = ram_getsize();
-		//Get the number of frames
 		
+		//Get the number of frames
 		unsigned int num_of_frames = (top_of_ram)/PAGE_SIZE;
 		paddr_t location = top_of_ram - (num_of_frames * sizeof(struct ft_entry));
 
@@ -189,7 +180,5 @@ void init_frametable(){
 			frameTable[i].used = true;					
 		}
 
-		//kprintf("first_free_index is : 0x%x\n", first_free_index);
-
 }
-//**************************
+

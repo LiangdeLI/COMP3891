@@ -66,12 +66,13 @@ void init_frametable(void);
 // Initial hpt, the bump allocator will be used
 void init_hpt(void);
 
-// Insert into one free slot of hpt
+// Insert into [index] linked list
 struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN, 
 									int n_bit, int d_bit, int v_bit);
 
 int hpt_delete(struct addrspace * as, vaddr_t VPN);
 
+// Find if there is a hpt_entry based on as and VPN
 struct hpt_entry * hpt_lookup(struct addrspace * as, vaddr_t VPN); 
 
 // Hash function for hpt
