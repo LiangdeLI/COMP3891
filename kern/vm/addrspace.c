@@ -413,7 +413,7 @@ struct region* region_copy(struct addrspace* new_as,
 		old_PFN &= PAGE_FRAME;
 
 		// Copy the contain of the frame
-		memmove((void*)PFN, (const void*)old_PFN, PAGE_SIZE);
+		memmove((void*)PADDR_TO_KVADDR(PFN), (const void*)PADDR_TO_KVADDR(old_PFN), PAGE_SIZE);
 
 		// Create a new hpt_entry and insert into hpt
 		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
