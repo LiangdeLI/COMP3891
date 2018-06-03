@@ -216,7 +216,9 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
     	return ENOMEM;
 	}
 
-	as_add_region(as, new_region);
+	int result = as_add_region(as, new_region);
+
+	if(result) return result;
 
 	//kprintf("as:0x%x define region at 0x%x for 0x%x of pages\n", (unsigned int)as, vaddr, num_of_pages);
 
@@ -224,7 +226,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 	//***************************************
 }
 
-void as_add_region(struct addrspace *as, struct region *new_region)
+int as_add_region(struct addrspace *as, struct region *new_region)
 {
 	struct region* prev;
 	struct region* curr; 
@@ -247,14 +249,22 @@ void as_add_region(struct addrspace *as, struct region *new_region)
     	}
     	else
     	{
+    		// make sure region not overlapped
+    		if(prev->vir_base + prev->num_of_pages*PAGE_SIZE > new_region->vir_base)
+    			return EADDRINUSE;
+    		if(curr!=NULL)
+    			if(new_region->vir_base + new_region->num_of_pages*PAGE_SIZE > curr->vir_base)
+    			    return EADDRINUSE;
+    		
 	    	prev->next = new_region;
-	    	new_region->next = curr;
+	    	new_region->next = curr;    			
 	    }
 	}
 	else
 	{
 		as->regionList = new_region;
 	}
+	return 0;
 }
 
 int

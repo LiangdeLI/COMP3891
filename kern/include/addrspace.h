@@ -85,7 +85,7 @@ struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
 
 void region_destroy(struct addrspace* as, struct region* region);
 
-void as_add_region(struct addrspace *as, struct region *new_region);
+int as_add_region(struct addrspace *as, struct region *new_region);
 
 struct region* region_copy(struct addrspace* new_as, 
                         struct addrspace* old, struct region* old_region);
