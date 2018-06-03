@@ -450,7 +450,11 @@ vaddr_t sbrk(__intptr_t change)
 
     if(as->has_heap==false)
     {
-    	as_define_heap(as);
+    	as_define_heap(as, change);
+    }
+    else
+    {
+    	as_grow_heap(as, change);
     }
 
     vaddr_t original_pointer = as->heap_pointer;

@@ -400,6 +400,10 @@ void region_destroy(struct addrspace* as, struct region* region)
 	            // free physical frame
 	            kfree((void *)PADDR_TO_KVADDR(PFN));
 	        }
+	        else
+	        {
+	        	pop_ref(PFN);
+	        }
             // delete corresponding entry in hash_page_table
             hpt_delete(as, VPN);
         }
@@ -456,7 +460,7 @@ struct region* region_copy(struct addrspace* new_as,
 }
 
 int
-as_define_heap(struct addrspace *as)
+as_define_heap(struct addrspace *as, __intptr_t change)
 {
     /*
      * Write this.
@@ -472,17 +476,41 @@ as_define_heap(struct addrspace *as)
 
 	vaddr_t vaddr = prev->vir_base + prev->num_of_pages*PAGE_SIZE;
 	vaddr_t VPN = vaddr&PAGE_FRAME;
-	size_t size = USERSTACK-20*PAGE_SIZE-VPN;
-	int res = as_define_region(as, VPN, size, 1, 1, 1);
+	//size_t size = USERSTACK-20*PAGE_SIZE-VPN;
+
+	int res = as_define_region(as, VPN, (size_t)change, 1, 1, 1);
 
 	
 	if(res){
 		return res;
 	}
+	curr = as->regionList;
+	prev = as->regionList;
+	while(curr->next!=NULL)
+	{
+		prev=curr;
+		curr=curr->next;
+	}
+	prev->is_heap=true;	
 	as->has_heap = true;
 	as->heap_pointer = VPN;
 
     return 0;
+}
+
+int as_grow_heap(struct addrspace *as, __intptr_t change)
+{
+	struct region* curr = as->regionList;
+
+	while(curr!=NULL)
+	{
+		curr=curr->next;
+		if(curr->is_heap) break;
+	}
+	change = (change + PAGE_SIZE -1) & PAGE_FRAME;
+	int num = change/PAGE_SIZE;
+	curr->num_of_pages+=num;
+	return 0;
 }
 
 struct region* region_lookup(struct addrspace* as, vaddr_t vaddr)

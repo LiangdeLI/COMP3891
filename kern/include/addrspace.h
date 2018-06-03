@@ -95,7 +95,9 @@ struct region* region_copy(struct addrspace* new_as,
                         struct addrspace* old, struct region* old_region);
 
 int
-as_define_heap(struct addrspace *as);
+as_define_heap(struct addrspace *as, __intptr_t change);
+
+int as_grow_heap(struct addrspace *as, __intptr_t change);
 
 struct region* region_lookup(struct addrspace* as, vaddr_t vaddr);
 

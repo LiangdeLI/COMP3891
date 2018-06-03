@@ -236,9 +236,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 			old_hpt_entry->PFN = new_PFN;
 		}
-		int t = splhigh();
-		tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
-		splx(t);
+		// int t = splhigh();
+		// tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
+		// splx(t);
 		return 0; 
 	}
 
@@ -293,6 +293,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	// Convert to physical address
 	paddr_t PFN = KVADDR_TO_PADDR(VPN);
 	PFN &= TLBLO_PPAGE;
+
+	add_ref(PFN);
 
 	// Create a new hpt_entry and insert into hpt
 	struct hpt_entry* new_hpt_entry = 
