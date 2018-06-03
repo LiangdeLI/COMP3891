@@ -1,1 +1,101 @@
-Place your design document here.
+//BY Junyu Lin z5077890 and Liangde Li z5077896
+
+
+
+FRAME_TABLE*********************************************
+
+--frame table entry
+struct ft_entry{
+	int prev;
+	int next;
+	bool used;
+};
+
+
+1. 
+For our frame table design, Our frame table is a double linked list of frame table entries which contains: the index of previous entry, the index of next entry and the used flag. 
+
+2. 
+When we initialise VM sub-system, we call our init frame table function "init_frametable" to init our frametable. we compute somewhere free in RAM to put it and just use it in that location to make our frame table dynamically sizeable based on physical memory in the machine.
+
+3. 
+alloc_kpages: Because the frame table is global, we need to acqurie lock to deal with concurrency. we acqurie the lock first and aloocate the pages. And then we release the lock. Finally we zero the page.
+free_kpages: Similar like "alloc_kpages", we also need to acquire lock to keep it work with concurrency. And as our frame table is actually a linked list, so we just free that as wo do to free linked list.
+
+
+
+PAGE_TABLE***********************************************
+4.
+--Page table Structure: 
+We use hash page table structure. 
+We use linked list hash table to avoid hash collision. 
+
+--hash page table entry
+struct hpt_entry{
+	struct addrspace * pid;
+	uint32_t VPN;
+	uint32_t PFN; 
+	struct hpt_entry * next;
+};
+We stores visual page number, physical frame number, pid, next pointer in our hash page table entry.
+
+
+--hash function
+For hash function, we use the recommended one "index = (((uint32_t )as) ^ (faultaddr >> PAGE_BITS)) % hpt_size;".
+We init our hash page table while we initialis VM sub-system.
+
+
+--vm_fault:
+When visual memory fault occurs, we firstly check whether it is "VM_FAULT REAONLY", if it is, we return EFAULT, else we look up our page table to check whether it is valid translation, if it is, we just load tlb, if not the nest thing we should do is to look up region. If it is valid region, we allocate frame, zero-fill and insert PTE and then load tlb. If it is invalid region, we return EFAULT.
+
+
+address space*********************************************
+
+--address space structure
+we define address space as:
+struct addrspace {
+#if OPT_DUMBVM
+        vaddr_t as_vbase1;
+        paddr_t as_pbase1;
+        size_t as_npages1;
+        vaddr_t as_vbase2;
+        paddr_t as_pbase2;
+        size_t as_npages2;
+        paddr_t as_stackpbase;
+#else
+		/* Put stuff here for your VM system */
+		paddr_t** pageTable;
+		struct region* regionList;    
+		
+#endif
+};
+
+
+we define the region as:
+struct region{
+    vaddr_t vir_base;
+    size_t num_of_pages;
+    int readable;
+    int writeable;
+    int executable;
+    bool need_recover;
+    struct region* next;	
+};
+
+
+--address space function implementation
+For our "as_create", when we create the address space, we need to init pagetable and our resgion. Implementation for "as_copy" and "as_destroy" are similar.
+
+For "as_activate", we need to flush the tlb when we activate the address. To do this, we call "splhigh()" to set IPL to the highest value, disabling all interrupts for making "flush the tlb" highest priority level. Then we call the "tlb_write" to flush it. When we finished, we called function "splx(s)" to sets IPL to previous one, enabling whatever previous state represents.
+
+For "de_activate", we do the same thing, so we just call "as_activate" in it.
+
+For "define region": because our region is actually a linked list, so when we add the region, we do the same as add the element into linked list, but we need to make sure the region is not overlapped.
+
+For "define stack": In "as_define_stack", we called our "define_region" function and initialize the stack pointer.
+ 
+
+
+
+
+
