@@ -23,8 +23,8 @@ void init_hpt(void)
 	// Get the number of frames		
 	int num_of_frames = (top_of_ram)/PAGE_SIZE;
 	
-	// Allocate two times of slots for each frame
-	hpt_size = 2*num_of_frames;
+	// Using externel chain, don't need allocate two times of slots
+	hpt_size = num_of_frames;
 	// kprintf("hpt_size is %d\n",hpt_size);
 	// Bump allocator will be used
 	hash_page_table = (struct hpt_entry**) kmalloc(sizeof(struct hpt_entry*)*hpt_size);
@@ -34,10 +34,6 @@ void init_hpt(void)
 	{
 		// pointing to null, no head yet
 		hash_page_table[i] = NULL;
-		// hash_page_table[i].pid = 0;
-		// hash_page_table[i].VPN = 0;
-		// hash_page_table[i].PFN = 0;
-		// hash_page_table[i].next = NULL;
 	}
 }
 
