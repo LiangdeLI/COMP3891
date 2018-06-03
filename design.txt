@@ -88,13 +88,26 @@ For our "as_create", when we create the address space, we need to init pagetable
 
 For "as_activate", we need to flush the tlb when we activate the address. To do this, we call "splhigh()" to set IPL to the highest value, disabling all interrupts for making "flush the tlb" highest priority level. Then we call the "tlb_write" to flush it. When we finished, we called function "splx(s)" to sets IPL to previous one, enabling whatever previous state represents.
 
-For "de_activate", we do the same thing, so we just call "as_activate" in it.
+For "de_activate", Set up a segment at virtual address VADDR of size MEMSIZE. we do the same thing, so we just call "as_activate" in it.
 
-For "define region": because our region is actually a linked list, so when we add the region, we do the same as add the element into linked list, but we need to make sure the region is not overlapped.
+For "as_define_region": Set up a segment at virtual address VADDR of size MEMSIZE. Because our region is actually a linked list, so when we add the region, we do the same as add the element into linked list, but we need to make sure the region is not overlapped.
 
-For "define stack": In "as_define_stack", we called our "define_region" function and initialize the stack pointer.
- 
+For "as_define stack": In "as_define_stack", we called our "define_region" function and initialize the stack pointer.
 
+For "as_prepare_load": The function to prepare the regions to be loaded. It will set the "writeable bit" to 1.
+
+For "as_complete_load": After the load is completed, it will unset the dirty bit.
+
+
+
+Others-region_function**********************************
+We have some help function:"region_create", "region_copy" and "region_destroy" to help to deal with our region. (We call them where we need to work with region, such as the address space function).
+
+region_create: the function to init our region. It malloc the memory for region and initialize it.
+
+region_copy: the funtion to cooy our region. It will find the corresponding frame table for the region that we want to copy. Then we copy the contains of the region and create the hash page entry for the frame table and insert it into our hash page table.
+
+region_destroy: the function to destroy our region. To destroy it, it interates to findthe coresponding hpt_entry and our corresponding physical frame number. Then it free the physical frame and hpt_entry.
 
 
 
