@@ -295,6 +295,17 @@ as_complete_load(struct addrspace *as)
 		{
 			curr->writeable = 0;
 			curr->need_recover=false;
+			
+			// Reset those D bit
+			for(unsigned int i=0; i<curr->num_of_pages; ++i)
+			{
+				struct hpt_entry* hpt_e= hpt_lookup(as, curr->vir_base+i*PAGE_SIZE);
+		
+				// No hpt_entry, this page not used yet
+				if (hpt_e==NULL) continue;
+				// Unset dirty bit
+				hpt_e->PFN &= ~(TLBLO_DIRTY);				
+			}
 		}
 		curr = curr->next;
 	}
