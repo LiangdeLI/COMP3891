@@ -16,7 +16,7 @@ struct ft_entry{
 For our frame table design, Our frame table is a double linked list of frame table entries which contains: the index of previous entry, the index of next entry and the used flag. 
 
 2. 
-When we initialise VM sub-system, we call our init frame table function "init_frametable" to init our frametable. we compute somewhere free in RAM to put it and just use it in that location to make our frame table dynamically sizeable based on physical memory in the machine.
+When we initialise VM sub-system, we call our init frame table function "init_frametable" to init our frametable. we compute at the top of the RAM to put it and just use it in that location to make our frame table dynamically sizeable based on physical memory in the machine.
 
 3. 
 alloc_kpages: Because the frame table is global, we need to acqurie lock to deal with concurrency. we acqurie the lock first and aloocate the pages. And then we release the lock. Finally we zero the page.
@@ -28,7 +28,7 @@ PAGE_TABLE***********************************************
 4.
 --Page table Structure: 
 We use hash page table structure. 
-We use linked list hash table to avoid hash collision. 
+We use externel chain (linked lists) hash table to avoid hash collision. 
 
 --hash page table entry
 struct hpt_entry{
@@ -37,7 +37,7 @@ struct hpt_entry{
 	uint32_t PFN; 
 	struct hpt_entry * next;
 };
-We stores visual page number, physical frame number, pid, next pointer in our hash page table entry.
+We stores virtual page number, physical frame number, pid(address of struct addrspace), next pointer in our hash page table entry.
 
 
 --hash function
@@ -46,7 +46,7 @@ We init our hash page table while we initialis VM sub-system.
 
 
 --vm_fault:
-When visual memory fault occurs, we firstly check whether it is "VM_FAULT REAONLY", if it is, we return EFAULT, else we look up our page table to check whether it is valid translation, if it is, we just load tlb, if not the nest thing we should do is to look up region. If it is valid region, we allocate frame, zero-fill and insert PTE and then load tlb. If it is invalid region, we return EFAULT.
+When virtual memory fault occurs, we firstly check whether it is "VM_FAULT REAONLY", if it is, we return EFAULT, else we look up our page table to check whether it is valid translation, if it is, we just load tlb, if not the next thing we should do is to look up region. If it is valid region, we allocate frame, zero-fill and insert PTE and then load tlb. If it is invalid region, we return EFAULT.
 
 
 address space*********************************************
@@ -64,7 +64,7 @@ struct addrspace {
         paddr_t as_stackpbase;
 #else
 		/* Put stuff here for your VM system */
-		paddr_t** pageTable;
+
 		struct region* regionList;    
 		
 #endif
