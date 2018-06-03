@@ -219,11 +219,15 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		if(check_ref(old_hpt_entry->PFN & PAGE_FRAME)!=1)
 		{
 			pop_ref(old_hpt_entry->PFN & PAGE_FRAME);
+			
 			// Get a frame in frameTable
 			vaddr_t new_VPN = (vaddr_t) kmalloc(PAGE_SIZE);
 		    if(new_VPN == 0) {
 		        return ENOMEM;
 		    }
+		    // move memory
+		    memmove((void*)new_VPN, (const void*)PADDR_TO_KVADDR(old_hpt_entry->PFN), PAGE_SIZE);
+			
 			// Convert to physical address
 			paddr_t new_PFN = KVADDR_TO_PADDR(new_VPN);
 			new_PFN &= TLBLO_PPAGE;

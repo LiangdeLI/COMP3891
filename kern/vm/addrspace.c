@@ -77,7 +77,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
     new_addr = as_create();
     if (new_addr==NULL) 
     {
-            return ENOMEM;
+        return ENOMEM;
     }
 
     //Add*****************
@@ -394,10 +394,12 @@ void region_destroy(struct addrspace* as, struct region* region)
         if(curr_hpt_entry != NULL) {
             // Get PFN, get rid of N,D,V,G bits
             paddr_t PFN = curr_hpt_entry->PFN & PAGE_FRAME;
-            
-            // free physical frame
-            kfree((void *)PADDR_TO_KVADDR(PFN));
 
+            if(check_ref(PFN)==1)
+            {
+	            // free physical frame
+	            kfree((void *)PADDR_TO_KVADDR(PFN));
+	        }
             // delete corresponding entry in hash_page_table
             hpt_delete(as, VPN);
         }
@@ -429,11 +431,11 @@ struct region* region_copy(struct addrspace* new_as,
 		// Get a frame in frameTable
 		// vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
 		// KASSERT(VPN!=0);
-		vaddr_t VPN = old_hpt_entry->VPN;
+		//vaddr_t VPN = old_hpt_entry->VPN;
 
 		// Convert to virtual address
-		paddr_t PFN = KVADDR_TO_PADDR(VPN);
-		PFN &= PAGE_FRAME;
+		// paddr_t PFN = old_hpt_entry->PFN;
+		// PFN &= PAGE_FRAME;
 
 		// Get the physical address of old frame
 		old_hpt_entry->PFN &= ~TLBLO_DIRTY;
@@ -445,7 +447,7 @@ struct region* region_copy(struct addrspace* new_as,
 		//memmove((void*)PADDR_TO_KVADDR(PFN), (const void*)PADDR_TO_KVADDR(old_PFN), PAGE_SIZE);
 
 		// Create a new hpt_entry and insert into hpt
-		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, 0, 1);
+		hpt_insert(new_as, old_hpt_entry->VPN, old_PFN, 0, 0, 1);
 
 		//kprintf("as:0x%x add page 0x%x at physical 0x%x \n", (unsigned int)new_as, old_hpt_entry->VPN, PFN);
 	}
