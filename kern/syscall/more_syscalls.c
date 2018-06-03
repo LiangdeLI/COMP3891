@@ -48,6 +48,8 @@
 #include <openfile.h>
 #include <filetable.h>
 #include <syscall.h>
+#include <kern/sbrk.h>
+#include <addrspace.h>
 
 /*
  * Note: if you are receiving this code as a patch to integrate with
@@ -426,4 +428,37 @@ sys_ftruncate(int fd, off_t len)
 	err = VOP_TRUNCATE(file->of_vnode, len);
 	filetable_put(curproc->p_filetable, fd, file);
 	return err;
+}
+
+int sys_sbrk(int val, int* retval)
+{
+	*retval = (int)sbrk(val);
+	KASSERT(retval!=NULL);
+	return 0;
+}
+
+
+vaddr_t sbrk(__intptr_t change)
+{
+    if (change < 0) {
+        return EINVAL;
+    }
+
+    struct addrspace *as;
+
+    as = proc_getas();
+
+    if(as->has_heap==false)
+    {
+    	as_define_heap(as);
+    }
+
+    vaddr_t original_pointer = as->heap_pointer;
+
+    if(change%PAGE_SIZE!=0)
+    	change = (change&PAGE_FRAME) + PAGE_SIZE;
+
+    as->heap_pointer+=change;
+
+    return original_pointer;
 }

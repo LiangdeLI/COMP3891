@@ -38,6 +38,7 @@
 #include <vm.h>
 #include <proc.h>
 
+
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
  * assignment, this file is not compiled or linked or in any way
@@ -61,7 +62,8 @@ as_create(void)
     /*
      * Initialize as needed.
      */
-
+    as->has_heap = false;
+    as->has_stack = false;
 	as->regionList = NULL;		
 
     return as;
@@ -350,6 +352,8 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
     /* Initial user-level stack pointer */
     *stackptr = USERSTACK;
 
+    as->has_stack=true;
+
     return 0;
 }
 
@@ -368,6 +372,7 @@ struct region* region_create(vaddr_t vaddr, size_t num_of_pages, int readable,
 	new_region->writeable = writeable;
 	new_region->executable = executable;
 	new_region->need_recover = false;
+	new_region->is_heap = false;
 	new_region->next = NULL;
 
 	return new_region;
@@ -445,18 +450,32 @@ struct region* region_copy(struct addrspace* new_as,
 	return new_region;
 }
 
-int sys_sbrk(int size, int *retval)
+int
+as_define_heap(struct addrspace *as)
 {
-    struct addrspace *as;
+    /*
+     * Write this.
+     */	
+	struct region* curr = as->regionList;
+	struct region* prev = as->regionList;
+	
+	while(curr->next!=NULL)
+	{
+		prev = curr;
+		curr = curr->next;
+	}
 
-    as = proc_getas();
-    if (as == NULL) {
-            /*
-             * Kernel thread without an address space; leave the
-             * prior address space in place.
-             */
-            return;
-    }
+	vaddr_t vaddr = prev->vir_base + prev->num_of_pages*PAGE_SIZE;
+	vaddr_t VPN = vaddr&PAGE_FRAME;
+	size_t size = USERSTACK-20*PAGE_SIZE-VPN;
+	int res = as_define_region(as, VPN, size, 1, 1, 1);
 
-    	
+	
+	if(res){
+		return res;
+	}
+	as->has_heap = true;
+	as->heap_pointer = VPN;
+
+    return 0;
 }

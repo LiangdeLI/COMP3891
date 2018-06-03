@@ -37,8 +37,6 @@
 #include <current.h>
 #include <copyinout.h>
 #include <syscall.h>
-#include <addrspace.h>
-
 
 /*
  * System call dispatcher.
@@ -78,6 +76,7 @@
  * stack, starting at sp+16 to skip over the slots for the
  * registerized values, with copyin().
  */
+
 void
 syscall(struct trapframe *tf)
 {
@@ -144,8 +143,7 @@ syscall(struct trapframe *tf)
 		break;
 
 		case SYS_sbrk:
-		err = sys_sbrk((userptr_t) tf->tf_a0
-						&retval);
+		err = sys_sbrk((int)tf->tf_a0, &retval);
 		break;
 
 	    /* file calls */

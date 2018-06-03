@@ -40,6 +40,8 @@ struct trapframe; /* from <machine/trapframe.h> */
 
 void syscall(struct trapframe *tf);
 
+int sys_sbrk(int val, int* retval);
+
 /*
  * Support functions.
  */
@@ -91,5 +93,6 @@ int sys_getdirentry(int fd, userptr_t buf, size_t buflen, int *retval);
 int sys_fstat(int fd, userptr_t statptr);
 int sys_fsync(int fd);
 int sys_ftruncate(int fd, off_t len);
+
 
 #endif /* _SYSCALL_H_ */

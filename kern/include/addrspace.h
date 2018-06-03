@@ -58,6 +58,7 @@ struct region{
     int writeable;
     int executable;
     bool need_recover;
+    bool is_heap;
     struct region* next;	
 };
 //*************************
@@ -74,6 +75,9 @@ struct addrspace {
         paddr_t as_stackpbase;
 #else
 		/* Put stuff here for your VM system */
+        bool has_heap;
+        bool has_stack;
+        vaddr_t heap_pointer;
 
 		struct region* regionList;    
 		
@@ -90,7 +94,10 @@ int as_add_region(struct addrspace *as, struct region *new_region);
 struct region* region_copy(struct addrspace* new_as, 
                         struct addrspace* old, struct region* old_region);
 
-int sys_sbrk(int size, int *retval);
+int
+as_define_heap(struct addrspace *as);
+
+//void sbrk(int change, int* retval);
 
 /*
  * Functions in addrspace.c:
