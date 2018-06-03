@@ -444,3 +444,19 @@ struct region* region_copy(struct addrspace* new_as,
 
 	return new_region;
 }
+
+int sys_sbrk(int size, int *retval)
+{
+    struct addrspace *as;
+
+    as = proc_getas();
+    if (as == NULL) {
+            /*
+             * Kernel thread without an address space; leave the
+             * prior address space in place.
+             */
+            return;
+    }
+
+    	
+}

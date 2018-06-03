@@ -90,6 +90,8 @@ int as_add_region(struct addrspace *as, struct region *new_region);
 struct region* region_copy(struct addrspace* new_as, 
                         struct addrspace* old, struct region* old_region);
 
+int sys_sbrk(int size, int *retval);
+
 /*
  * Functions in addrspace.c:
  *

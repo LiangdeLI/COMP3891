@@ -37,6 +37,7 @@
 #include <current.h>
 #include <copyinout.h>
 #include <syscall.h>
+#include <addrspace.h>
 
 
 /*
@@ -142,6 +143,10 @@ syscall(struct trapframe *tf)
 		err = sys_getpid(&retval);
 		break;
 
+		case SYS_sbrk:
+		err = sys_sbrk((userptr_t) tf->tf_a0
+						&retval);
+		break;
 
 	    /* file calls */
 
