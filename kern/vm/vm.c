@@ -187,7 +187,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 	struct addrspace *curr_as = proc_getas();
-	//paddr_t** pt_pointer = curr_as->pageTable;
+
 
 	if(curr_as == NULL){
 		return EFAULT;
