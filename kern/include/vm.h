@@ -41,7 +41,8 @@
 struct hpt_entry{
 	struct addrspace * pid;
 	uint32_t VPN;
-	uint32_t PFN; 
+	uint32_t PFN;
+	bool d_bit; 
 	struct hpt_entry * next;
 };
 
@@ -89,6 +90,12 @@ void free_kpages(vaddr_t addr);
 
 /* TLB shootdown handling called from interprocessor_interrupt */
 void vm_tlbshootdown(const struct tlbshootdown *);
+
+void add_ref(paddr_t PFN);
+
+int check_ref(paddr_t PFN);
+
+void pop_ref(paddr_t PFN);
 
 
 #endif /* _VM_H_ */

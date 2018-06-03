@@ -427,22 +427,25 @@ struct region* region_copy(struct addrspace* new_as,
 		if (old_hpt_entry==NULL) continue;
 
 		// Get a frame in frameTable
-		vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
-		KASSERT(VPN!=0);
+		// vaddr_t VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+		// KASSERT(VPN!=0);
+		vaddr_t VPN = old_hpt_entry->VPN;
 
 		// Convert to virtual address
 		paddr_t PFN = KVADDR_TO_PADDR(VPN);
 		PFN &= PAGE_FRAME;
 
 		// Get the physical address of old frame
+		old_hpt_entry->PFN &= ~TLBLO_DIRTY;
 		paddr_t old_PFN = old_hpt_entry->PFN;
 		old_PFN &= PAGE_FRAME;
+		add_ref(old_PFN);
 
 		// Copy the contain of the frame
-		memmove((void*)PADDR_TO_KVADDR(PFN), (const void*)PADDR_TO_KVADDR(old_PFN), PAGE_SIZE);
+		//memmove((void*)PADDR_TO_KVADDR(PFN), (const void*)PADDR_TO_KVADDR(old_PFN), PAGE_SIZE);
 
 		// Create a new hpt_entry and insert into hpt
-		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, new_region->writeable, 1);
+		hpt_insert(new_as, old_hpt_entry->VPN, PFN, 0, 0, 1);
 
 		//kprintf("as:0x%x add page 0x%x at physical 0x%x \n", (unsigned int)new_as, old_hpt_entry->VPN, PFN);
 	}
@@ -478,4 +481,17 @@ as_define_heap(struct addrspace *as)
 	as->heap_pointer = VPN;
 
     return 0;
+}
+
+struct region* region_lookup(struct addrspace* as, vaddr_t vaddr)
+{
+	struct region* curr = as->regionList;
+	while(curr!=NULL)
+	{
+		if(curr->vir_base<= vaddr && vaddr < (curr->vir_base + curr->num_of_pages*PAGE_SIZE) )
+		{
+			return curr;
+		}
+	}
+	return NULL;
 }

@@ -97,6 +97,8 @@ struct region* region_copy(struct addrspace* new_as,
 int
 as_define_heap(struct addrspace *as);
 
+struct region* region_lookup(struct addrspace* as, vaddr_t vaddr);
+
 //void sbrk(int change, int* retval);
 
 /*

@@ -18,6 +18,7 @@ struct ft_entry{
 	int prev;
 	int next;
 	bool used;
+	int ref_count;
 };
 
 
@@ -72,6 +73,7 @@ vaddr_t alloc_kpages(unsigned int npages)
 			frameTable[frameTable[first_free_index].next].prev = frameTable[first_free_index].prev;
 			frameTable[frameTable[first_free_index].prev].next = frameTable[first_free_index].next;
 			frameTable[first_free_index].used = true;
+			frameTable[first_free_index].ref_count++;
 			//
 
 			//Check if it is the last free frame
@@ -113,18 +115,20 @@ void free_kpages(vaddr_t addr)
 		spinlock_acquire(&frameTable_lock);
 
 		if(frameTable[i].used){
-
-			if(first_free_index != -1){
-				frameTable[i].prev = frameTable[first_free_index].prev;	
-				frameTable[first_free_index].prev = i;
-				frameTable[i].next = first_free_index;		
-			}else{
-				frameTable[i].prev = frameTable[i].next = i;
+			if(frameTable[i].ref_count==1)
+			{
+				if(first_free_index != -1){
+					frameTable[i].prev = frameTable[first_free_index].prev;	
+					frameTable[first_free_index].prev = i;
+					frameTable[i].next = first_free_index;		
+				}else{
+					frameTable[i].prev = frameTable[i].next = i;
+				}
+					
+				frameTable[i].used = false;
+				frameTable[i].ref_count = 0;
+				first_free_index = i;
 			}
-				
-			frameTable[i].used = false;
-
-			first_free_index = i;
 			spinlock_release(&frameTable_lock);
 		}else{
 			spinlock_release(&frameTable_lock);
@@ -164,6 +168,7 @@ void init_frametable(){
 			}
 
 			ft_e.used = false;
+			ft_e.ref_count=0;
 			memmove(&frameTable[i], &ft_e, sizeof(ft_e));
 		}
 
@@ -175,7 +180,7 @@ void init_frametable(){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
 			frameTable[i].used = true;
-			
+			frameTable[i].ref_count=1;
 			first_free_index = i;		
 		}
 		first_free_index++;
@@ -186,10 +191,26 @@ void init_frametable(){
 		for(unsigned int i = num_of_frames-1; i>= frame_loc; i--){
 			frameTable[frameTable[i].next].prev = frameTable[i].prev;
 			frameTable[frameTable[i].prev].next = frameTable[i].next;
-			frameTable[i].used = true;					
+			frameTable[i].used = true;
+			frameTable[i].ref_count=1;					
 		}
 
 		//kprintf("first_free_index is : 0x%x\n", first_free_index);
 
+}
+
+void add_ref(paddr_t PFN)
+{
+	frameTable[PFN>>12].ref_count++;
+}
+
+int check_ref(paddr_t PFN)
+{
+	return frameTable[PFN>>12].ref_count;
+}
+
+void pop_ref(paddr_t PFN)
+{
+	frameTable[PFN>>12].ref_count--;
 }
 //**************************

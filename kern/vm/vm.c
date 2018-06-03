@@ -72,6 +72,9 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 		new_hpt_entry->VPN = VPN;
 		new_hpt_entry->PFN = PFN;
 		new_hpt_entry->next = NULL;
+		if(d_bit) new_hpt_entry->d_bit = true;
+		else new_hpt_entry->d_bit = false;
+
 		hash_page_table[index] = new_hpt_entry;
 		spinlock_release(&hpt_lock);
 		return new_hpt_entry;
@@ -90,6 +93,9 @@ struct hpt_entry* hpt_insert(struct addrspace * as, vaddr_t VPN, paddr_t PFN,
 	new_hpt_entry->VPN = VPN;
 	new_hpt_entry->PFN = PFN;
 	new_hpt_entry->next = NULL;
+	if(d_bit) new_hpt_entry->d_bit = true;
+	else new_hpt_entry->d_bit = false;
+
 	tail_hpt_entry->next = new_hpt_entry;
 	
 	spinlock_release(&hpt_lock);
@@ -174,6 +180,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     // (void) faulttype;
     // (void) faultaddress;
 
+
     //panic("vm_fault hasn't been written yet\n");
 	switch(faulttype){
 		case VM_FAULT_READ:
@@ -181,7 +188,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		case VM_FAULT_WRITE:
 			break;
 		case VM_FAULT_READONLY:
-			return EFAULT;
+			break;
 		default:
 			return EINVAL;
 	}
@@ -196,7 +203,41 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	// Lookup hpt
 	vaddr_t old_VPN = faultaddress&PAGE_FRAME;
 	struct hpt_entry* old_hpt_entry = hpt_lookup(curr_as, old_VPN);
-	
+
+	if(faulttype==VM_FAULT_READONLY)
+	{
+		if(old_hpt_entry==NULL) return EFAULT;
+
+		struct region* fault_region = region_lookup(curr_as, faultaddress);
+
+		if(fault_region==NULL) return EFAULT;
+
+		if(fault_region->writeable==0) return EFAULT;
+
+		old_hpt_entry->PFN |= TLBLO_DIRTY;
+
+		if(check_ref(old_hpt_entry->PFN & PAGE_FRAME)!=1)
+		{
+			pop_ref(old_hpt_entry->PFN & PAGE_FRAME);
+			// Get a frame in frameTable
+			vaddr_t new_VPN = (vaddr_t) kmalloc(PAGE_SIZE);
+		    if(new_VPN == 0) {
+		        return ENOMEM;
+		    }
+			// Convert to physical address
+			paddr_t new_PFN = KVADDR_TO_PADDR(new_VPN);
+			new_PFN &= TLBLO_PPAGE;
+
+			new_PFN = new_PFN | TLBLO_DIRTY | TLBLO_VALID;
+
+			old_hpt_entry->PFN = new_PFN;
+		}
+		int t = splhigh();
+		tlb_random(old_hpt_entry->VPN, old_hpt_entry->PFN);
+		splx(t);
+		return 0; 
+	}
+
 	// Load TLB
 	if(old_hpt_entry!=NULL)
 	{
